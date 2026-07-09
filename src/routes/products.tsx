@@ -48,7 +48,7 @@ function ProductsPage() {
   const categories = useQuery({ queryKey: ["categories"], queryFn: () => ProductsAPI.categories() });
 
   const update = (patch: Partial<typeof search>) =>
-    navigate({ search: (prev) => ({ ...prev, ...patch, page: patch.page ?? 1 }) as never });
+    navigate({ search: ((prev: typeof search) => ({ ...prev, ...patch, page: patch.page ?? 1 })) as never });
 
   const clearFilters = () =>
     navigate({ search: {} as never });
