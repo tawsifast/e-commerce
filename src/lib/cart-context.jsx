@@ -1,35 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import type { Product } from "./api";
 
-export interface CartItem {
-  productId: string;
-  title: string;
-  image?: string;
-  price: number;
-  stock: number;
-  quantity: number;
-  seller?: string;
-}
-
-interface CartContextValue {
-  items: CartItem[];
-  count: number;
-  subtotal: number;
-  drawerOpen: boolean;
-  openDrawer: () => void;
-  closeDrawer: () => void;
-  addItem: (product: Product, qty?: number) => void;
-  removeItem: (productId: string) => void;
-  updateQty: (productId: string, qty: number) => void;
-  clear: () => void;
-}
-
-const CartContext = createContext<CartContextValue | null>(null);
+const CartContext = createContext(null);
 const KEY = "marketa_cart";
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([]);
+export function CartProvider({ children }) {
+  const [items, setItems] = useState([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
@@ -48,7 +24,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
-  const addItem = useCallback((product: Product, qty = 1) => {
+  const addItem = useCallback((product, qty = 1) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === product._id);
       if (existing) {
@@ -74,11 +50,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     toast.success(`${product.title} added to cart`);
   }, []);
 
-  const removeItem = useCallback((productId: string) => {
+  const removeItem = useCallback((productId) => {
     setItems((prev) => prev.filter((i) => i.productId !== productId));
   }, []);
 
-  const updateQty = useCallback((productId: string, qty: number) => {
+  const updateQty = useCallback((productId, qty) => {
     setItems((prev) =>
       prev.map((i) =>
         i.productId === productId ? { ...i, quantity: Math.max(1, Math.min(qty, i.stock)) } : i,

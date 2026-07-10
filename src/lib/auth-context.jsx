@@ -1,21 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { AuthAPI, TOKEN_KEY, type User } from "./api";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { AuthAPI, TOKEN_KEY } from "./api";
 
-interface AuthContextValue {
-  user: User | null;
-  loading: boolean;
-  login: (email: string, password: string) => Promise<User>;
-  register: (payload: { name: string; email: string; password: string; photo?: string }) => Promise<User>;
-  googleLogin: (idToken: string) => Promise<User>;
-  logout: () => void;
-  refresh: () => Promise<void>;
-  setUser: (u: User | null) => void;
-}
+const AuthContext = createContext(null);
 
-const AuthContext = createContext<AuthContextValue | null>(null);
-
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+export function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
@@ -41,24 +30,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  const login = useCallback(async (email: string, password: string) => {
+  const login = useCallback(async (email, password) => {
     const { token, user: u } = await AuthAPI.login({ email, password });
     window.localStorage.setItem(TOKEN_KEY, token);
     setUser(u);
     return u;
   }, []);
 
-  const register = useCallback(
-    async (payload: { name: string; email: string; password: string; photo?: string }) => {
-      const { token, user: u } = await AuthAPI.register(payload);
-      window.localStorage.setItem(TOKEN_KEY, token);
-      setUser(u);
-      return u;
-    },
-    [],
-  );
+  const register = useCallback(async (payload) => {
+    const { token, user: u } = await AuthAPI.register(payload);
+    window.localStorage.setItem(TOKEN_KEY, token);
+    setUser(u);
+    return u;
+  }, []);
 
-  const googleLogin = useCallback(async (idToken: string) => {
+  const googleLogin = useCallback(async (idToken) => {
     const { token, user: u } = await AuthAPI.googleLogin(idToken);
     window.localStorage.setItem(TOKEN_KEY, token);
     setUser(u);

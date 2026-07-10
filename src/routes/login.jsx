@@ -25,7 +25,7 @@ function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [busy, setBusy] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e) => {
     e.preventDefault();
     setBusy(true);
     try {
@@ -40,8 +40,6 @@ function LoginPage() {
   };
 
   const google = () => {
-    // Placeholder: wire your Google OAuth (e.g. @react-oauth/google or a redirect flow),
-    // then call `googleLogin(idToken)` from AuthContext with the returned ID token.
     toast("Wire Google OAuth on your end, then call googleLogin(idToken)", { icon: "🔧" });
   };
 

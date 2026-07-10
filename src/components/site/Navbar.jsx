@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
 
-const dashboardHref = (role?: string) => {
+const dashboardHref = (role) => {
   if (role === "seller") return "/dashboard/seller";
   if (role === "admin") return "/dashboard/admin";
   return "/dashboard/buyer";
@@ -126,7 +126,7 @@ export function Navbar() {
   );
 }
 
-function MobileLink({ to, children, icon, onClick }: { to: string; children: React.ReactNode; icon: React.ReactNode; onClick: () => void }) {
+function MobileLink({ to, children, icon, onClick }) {
   return (
     <Link
       to={to}

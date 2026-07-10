@@ -29,9 +29,9 @@ function Home() {
   const categories = useQuery({ queryKey: ["categories"], queryFn: () => ProductsAPI.categories() });
   const reviews = useQuery({ queryKey: ["latestReviews"], queryFn: () => ReviewsAPI.latest() });
 
-  const submitSearch = (e: React.FormEvent) => {
+  const submitSearch = (e) => {
     e.preventDefault();
-    void navigate({ to: "/products", search: { search: q || undefined } as never });
+    void navigate({ to: "/products", search: { search: q || undefined } });
   };
 
   return (
@@ -82,7 +82,7 @@ function Home() {
           {(categories.data ?? Array.from({ length: 6 }).map((_, i) => ({ name: `Category ${i + 1}`, count: 0 }))).slice(0, 6).map((cat, i) => (
             <motion.button
               key={cat.name}
-              onClick={() => navigate({ to: "/products", search: { category: cat.name } as never })}
+              onClick={() => navigate({ to: "/products", search: { category: cat.name } })}
               initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -215,7 +215,7 @@ function Home() {
   );
 }
 
-function SectionHeader({ eyebrow, title, light = false }: { eyebrow: string; title: string; light?: boolean }) {
+function SectionHeader({ eyebrow, title, light = false }) {
   return (
     <div>
       <span className={`text-xs font-medium uppercase tracking-widest ${light ? "text-gold" : "text-muted-foreground"}`}>{eyebrow}</span>

@@ -25,7 +25,7 @@ function RegisterPage() {
   const [form, setForm] = useState({ name: "", email: "", password: "", photo: "" });
   const [busy, setBusy] = useState(false);
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e) => {
     e.preventDefault();
     if (form.password.length < 6) {
       toast.error("Password must be at least 6 characters");

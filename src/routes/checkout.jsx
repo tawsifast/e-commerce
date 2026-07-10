@@ -48,14 +48,14 @@ function CheckoutPage() {
   }, [loading, user, navigate]);
 
   const [form, setForm] = useState({ line1: "", city: "", state: "", zip: "", country: "United States", contact: "", notes: "" });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState({});
 
   const checkout = useMutation({
     mutationFn: async () => {
       const parsed = schema.safeParse(form);
       if (!parsed.success) {
-        const errs: Record<string, string> = {};
-        parsed.error.issues.forEach((i) => { errs[i.path[0] as string] = i.message; });
+        const errs = {};
+        parsed.error.issues.forEach((i) => { errs[i.path[0]] = i.message; });
         setErrors(errs);
         throw new Error("Please fix the highlighted fields");
       }
@@ -69,7 +69,6 @@ function CheckoutPage() {
       // NOTE: Real Stripe integration happens on your server — this UI expects a `clientSecret`
       // returned from POST /orders/checkout. Wire Stripe.js on your end and confirm with:
       //   await OrdersAPI.confirm(res.orderId, paymentIntentId)
-      // For now we treat a successful order-creation response as success.
       return res;
     },
     onSuccess: () => {
@@ -193,7 +192,7 @@ function CheckoutPage() {
   );
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({ label, error, children }) {
   return (
     <div>
       <Label className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-muted-foreground">{label}</Label>

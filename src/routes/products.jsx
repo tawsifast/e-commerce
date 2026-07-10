@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Filter, Search, SlidersHorizontal, X } from "lucide-react";
@@ -47,13 +47,12 @@ function ProductsPage() {
 
   const categories = useQuery({ queryKey: ["categories"], queryFn: () => ProductsAPI.categories() });
 
-  const update = (patch: Partial<typeof search>) =>
-    navigate({ search: ((prev: typeof search) => ({ ...prev, ...patch, page: patch.page ?? 1 })) as never });
+  const update = (patch) =>
+    navigate({ search: (prev) => ({ ...prev, ...patch, page: patch.page ?? 1 }) });
 
-  const clearFilters = () =>
-    navigate({ search: {} as never });
+  const clearFilters = () => navigate({ search: {} });
 
-  const submitSearch = (e: React.FormEvent) => {
+  const submitSearch = (e) => {
     e.preventDefault();
     update({ search: searchInput || undefined });
   };
@@ -86,7 +85,7 @@ function ProductsPage() {
         >
           <Filter className="h-4 w-4" /> Filters
         </button>
-        <Select value={search.sort ?? "newest"} onValueChange={(v) => update({ sort: v as never })}>
+        <Select value={search.sort ?? "newest"} onValueChange={(v) => update({ sort: v })}>
           <SelectTrigger className="w-[180px]"><SlidersHorizontal className="mr-2 h-4 w-4" /><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="newest">Newest first</SelectItem>
@@ -175,26 +174,26 @@ function ProductsPage() {
           ) : (
             <>
               <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
-                {active!.items.map((p, i) => <ProductCard key={p._id} product={p} index={i} />)}
+                {active.items.map((p, i) => <ProductCard key={p._id} product={p} index={i} />)}
               </div>
 
-              {active!.pages > 1 && (
+              {active.pages > 1 && (
                 <div className="mt-10 flex items-center justify-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={active!.page <= 1}
-                    onClick={() => update({ page: active!.page - 1 })}
+                    disabled={active.page <= 1}
+                    onClick={() => update({ page: active.page - 1 })}
                   >
                     Previous
                   </Button>
-                  {Array.from({ length: Math.min(active!.pages, 7) }).map((_, i) => {
+                  {Array.from({ length: Math.min(active.pages, 7) }).map((_, i) => {
                     const p = i + 1;
                     return (
                       <button
                         key={p}
                         onClick={() => update({ page: p })}
-                        className={`h-9 w-9 rounded-md text-sm ${active!.page === p ? "bg-primary text-primary-foreground" : "border border-border hover:bg-accent"}`}
+                        className={`h-9 w-9 rounded-md text-sm ${active.page === p ? "bg-primary text-primary-foreground" : "border border-border hover:bg-accent"}`}
                       >
                         {p}
                       </button>
@@ -203,8 +202,8 @@ function ProductsPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={active!.page >= active!.pages}
-                    onClick={() => update({ page: active!.page + 1 })}
+                    disabled={active.page >= active.pages}
+                    onClick={() => update({ page: active.page + 1 })}
                   >
                     Next
                   </Button>

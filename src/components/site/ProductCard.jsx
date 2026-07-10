@@ -1,12 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
-import type { Product } from "@/lib/api";
 import { formatPrice, isNewProduct } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart-context";
 
-export function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
+export function ProductCard({ product, index = 0 }) {
   const { addItem } = useCart();
   const hasDiscount = product.discountPrice != null && product.discountPrice < product.price;
   const isNew = isNewProduct(product.createdAt);
@@ -56,7 +55,7 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
           <div>
             {hasDiscount ? (
               <div className="flex items-baseline gap-2">
-                <span className="font-serif text-xl">{formatPrice(product.discountPrice!)}</span>
+                <span className="font-serif text-xl">{formatPrice(product.discountPrice)}</span>
                 <span className="text-xs text-muted-foreground line-through">{formatPrice(product.price)}</span>
               </div>
             ) : (

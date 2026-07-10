@@ -14,7 +14,7 @@ import { useCart } from "@/lib/cart-context";
 import { formatDate, formatPrice, isNewProduct } from "@/lib/format";
 
 export const Route = createFileRoute("/products/$id")({
-  head: ({ params }) => ({
+  head: () => ({
     meta: [
       { title: `Product — Marketa` },
       { name: "description", content: "Product details on Marketa." },
@@ -82,7 +82,7 @@ function ProductDetail() {
 
   const p = productQ.data;
   const hasDiscount = p.discountPrice != null && p.discountPrice < p.price;
-  const finalPrice = hasDiscount ? p.discountPrice! : p.price;
+  const finalPrice = hasDiscount ? p.discountPrice : p.price;
   const seller = typeof p.seller === "object" ? p.seller : null;
 
   const buyNow = () => {
@@ -90,7 +90,7 @@ function ProductDetail() {
     void navigate({ to: "/checkout" });
   };
 
-  const requireAuth = (action: () => void) => {
+  const requireAuth = (action) => {
     if (!user) {
       toast.error("Please sign in first");
       void navigate({ to: "/login" });
@@ -247,7 +247,7 @@ function ProductDetail() {
           ) : (reviewsQ.data ?? []).length === 0 ? (
             <div className="py-6 text-sm text-muted-foreground">No reviews yet. Be the first.</div>
           ) : (
-            reviewsQ.data!.map((r) => (
+            reviewsQ.data.map((r) => (
               <article key={r._id} className="py-5">
                 <div className="flex items-center gap-3">
                   {r.user.photo ? (

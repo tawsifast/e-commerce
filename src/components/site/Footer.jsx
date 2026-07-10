@@ -45,7 +45,7 @@ export function Footer() {
   );
 }
 
-function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {
+function FooterCol({ title, children }) {
   return (
     <div>
       <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-foreground">{title}</h4>
