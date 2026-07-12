@@ -78,3 +78,47 @@ export const OrdersAPI = {
 export const ReviewsAPI = {
   latest: () => api.get("/reviews/latest").then((r) => r.data.items),
 };
+
+// ============================================================
+// Seller
+// ============================================================
+export const SellerAPI = {
+  overview: () => api.get("/seller/overview").then((r) => r.data),
+  analytics: (range = "30d") =>
+    api.get("/seller/analytics", { params: { range } }).then((r) => r.data),
+  products: (q = {}) =>
+    api.get("/seller/products", { params: q }).then((r) => r.data),
+  createProduct: (payload) =>
+    api.post("/seller/products", payload).then((r) => r.data.product),
+  updateProduct: (id, payload) =>
+    api.patch(`/seller/products/${id}`, payload).then((r) => r.data.product),
+  deleteProduct: (id) =>
+    api.delete(`/seller/products/${id}`).then((r) => r.data),
+  orders: (page = 1, limit = 10) =>
+    api.get("/seller/orders", { params: { page, limit } }).then((r) => r.data),
+  updateOrderStatus: (orderId, status) =>
+    api.patch(`/seller/orders/${orderId}/status`, { status }).then((r) => r.data.order),
+  requestSellerRole: () =>
+    api.post("/seller/apply").then((r) => r.data),
+};
+
+// ============================================================
+// Admin
+// ============================================================
+export const AdminAPI = {
+  overview: () => api.get("/admin/overview").then((r) => r.data),
+  users: (q = {}) => api.get("/admin/users", { params: q }).then((r) => r.data),
+  updateUserRole: (id, role) =>
+    api.patch(`/admin/users/${id}/role`, { role }).then((r) => r.data.user),
+  toggleUserBlock: (id, blocked) =>
+    api.patch(`/admin/users/${id}/block`, { blocked }).then((r) => r.data.user),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`).then((r) => r.data),
+  products: (q = {}) => api.get("/admin/products", { params: q }).then((r) => r.data),
+  toggleProductVisibility: (id, hidden) =>
+    api.patch(`/admin/products/${id}/visibility`, { hidden }).then((r) => r.data.product),
+  deleteProduct: (id) => api.delete(`/admin/products/${id}`).then((r) => r.data),
+  orders: (q = {}) => api.get("/admin/orders", { params: q }).then((r) => r.data),
+  updateOrderStatus: (id, status) =>
+    api.patch(`/admin/orders/${id}/status`, { status }).then((r) => r.data.order),
+};
+
