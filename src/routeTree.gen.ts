@@ -16,6 +16,7 @@ import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as CartRouteImport } from './routes/cart'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductsIdRouteImport } from './routes/products.$id'
+import { Route as DashboardSellerRouteImport } from './routes/dashboard.seller'
 import { Route as DashboardBuyerRouteImport } from './routes/dashboard.buyer'
 
 const RegisterRoute = RegisterRouteImport.update({
@@ -53,6 +54,11 @@ const ProductsIdRoute = ProductsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => ProductsRoute,
 } as any)
+const DashboardSellerRoute = DashboardSellerRouteImport.update({
+  id: '/dashboard/seller',
+  path: '/dashboard/seller',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardBuyerRoute = DashboardBuyerRouteImport.update({
   id: '/dashboard/buyer',
   path: '/dashboard/buyer',
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/products': typeof ProductsRouteWithChildren
   '/register': typeof RegisterRoute
   '/dashboard/buyer': typeof DashboardBuyerRoute
+  '/dashboard/seller': typeof DashboardSellerRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/products': typeof ProductsRouteWithChildren
   '/register': typeof RegisterRoute
   '/dashboard/buyer': typeof DashboardBuyerRoute
+  '/dashboard/seller': typeof DashboardSellerRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRoutesById {
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/products': typeof ProductsRouteWithChildren
   '/register': typeof RegisterRoute
   '/dashboard/buyer': typeof DashboardBuyerRoute
+  '/dashboard/seller': typeof DashboardSellerRoute
   '/products/$id': typeof ProductsIdRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/register'
     | '/dashboard/buyer'
+    | '/dashboard/seller'
     | '/products/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/register'
     | '/dashboard/buyer'
+    | '/dashboard/seller'
     | '/products/$id'
   id:
     | '__root__'
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/register'
     | '/dashboard/buyer'
+    | '/dashboard/seller'
     | '/products/$id'
   fileRoutesById: FileRoutesById
 }
@@ -131,6 +143,7 @@ export interface RootRouteChildren {
   ProductsRoute: typeof ProductsRouteWithChildren
   RegisterRoute: typeof RegisterRoute
   DashboardBuyerRoute: typeof DashboardBuyerRoute
+  DashboardSellerRoute: typeof DashboardSellerRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -184,6 +197,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductsIdRouteImport
       parentRoute: typeof ProductsRoute
     }
+    '/dashboard/seller': {
+      id: '/dashboard/seller'
+      path: '/dashboard/seller'
+      fullPath: '/dashboard/seller'
+      preLoaderRoute: typeof DashboardSellerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard/buyer': {
       id: '/dashboard/buyer'
       path: '/dashboard/buyer'
@@ -214,6 +234,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductsRoute: ProductsRouteWithChildren,
   RegisterRoute: RegisterRoute,
   DashboardBuyerRoute: DashboardBuyerRoute,
+  DashboardSellerRoute: DashboardSellerRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
