@@ -1,3 +1,4 @@
+"use client";
 import { Link } from "@/lib/router-compat";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, ShoppingBag, User as UserIcon, X, LogOut, LayoutDashboard, Search } from "lucide-react";

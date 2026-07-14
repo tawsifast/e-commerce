@@ -1,3 +1,4 @@
+"use client";
 import { Link } from "@/lib/router-compat";
 import { Instagram, Twitter, Facebook } from "lucide-react";
 

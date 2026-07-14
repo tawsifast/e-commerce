@@ -1,3 +1,4 @@
+"use client";
 import { Link } from "@/lib/router-compat";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";

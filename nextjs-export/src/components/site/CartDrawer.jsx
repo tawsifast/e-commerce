@@ -1,3 +1,4 @@
+"use client";
 import { AnimatePresence, motion } from "framer-motion";
 import { Link, useNavigate } from "@/lib/router-compat";
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
