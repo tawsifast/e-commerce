@@ -1,0 +1,146 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+@import "@fontsource/instrument-serif/400.css";
+@import "@fontsource/instrument-serif/400-italic.css";
+@import "@fontsource/work-sans/300.css";
+@import "@fontsource/work-sans/400.css";
+@import "@fontsource/work-sans/500.css";
+@import "@fontsource/work-sans/600.css";
+@import "@fontsource/work-sans/700.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-serif: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-sans: "Work Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-glow: var(--primary-glow);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+}
+
+:root {
+  --radius: 0.5rem;
+
+  /* Warm cream + deep emerald + gold — premium marketplace */
+  --background: oklch(0.975 0.012 85);
+  --foreground: oklch(0.22 0.02 160);
+  --surface: oklch(0.955 0.015 85);
+  --surface-elevated: oklch(0.99 0.008 85);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.02 160);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.22 0.02 160);
+
+  --primary: oklch(0.36 0.08 160);
+  --primary-foreground: oklch(0.98 0.01 85);
+  --primary-glow: oklch(0.5 0.12 160);
+
+  --secondary: oklch(0.94 0.02 85);
+  --secondary-foreground: oklch(0.28 0.04 160);
+
+  --muted: oklch(0.94 0.015 85);
+  --muted-foreground: oklch(0.48 0.02 160);
+
+  --accent: oklch(0.9 0.03 85);
+  --accent-foreground: oklch(0.28 0.04 160);
+
+  --gold: oklch(0.75 0.13 82);
+  --gold-foreground: oklch(0.2 0.03 160);
+
+  --destructive: oklch(0.55 0.22 27);
+  --destructive-foreground: oklch(0.98 0 0);
+  --success: oklch(0.6 0.14 160);
+  --success-foreground: oklch(0.98 0 0);
+
+  --border: oklch(0.88 0.015 85);
+  --input: oklch(0.9 0.015 85);
+  --ring: oklch(0.36 0.08 160);
+
+  --gradient-hero: linear-gradient(135deg, oklch(0.36 0.08 160) 0%, oklch(0.28 0.06 165) 100%);
+  --gradient-gold: linear-gradient(135deg, oklch(0.78 0.13 82), oklch(0.68 0.15 60));
+  --gradient-cream: linear-gradient(180deg, oklch(0.98 0.012 85), oklch(0.95 0.018 85));
+
+  --shadow-sm: 0 1px 2px 0 oklch(0.22 0.02 160 / 0.06);
+  --shadow-md: 0 4px 12px -2px oklch(0.22 0.02 160 / 0.08);
+  --shadow-lg: 0 20px 50px -12px oklch(0.22 0.02 160 / 0.18);
+  --shadow-gold: 0 8px 30px -8px oklch(0.75 0.13 82 / 0.4);
+}
+
+.dark {
+  --background: oklch(0.16 0.02 160);
+  --foreground: oklch(0.96 0.01 85);
+  --surface: oklch(0.2 0.02 160);
+  --surface-elevated: oklch(0.24 0.025 160);
+  --card: oklch(0.22 0.025 160);
+  --card-foreground: oklch(0.96 0.01 85);
+  --popover: oklch(0.22 0.025 160);
+  --popover-foreground: oklch(0.96 0.01 85);
+  --primary: oklch(0.75 0.13 82);
+  --primary-foreground: oklch(0.18 0.03 160);
+  --primary-glow: oklch(0.85 0.14 82);
+  --secondary: oklch(0.28 0.03 160);
+  --secondary-foreground: oklch(0.96 0.01 85);
+  --muted: oklch(0.26 0.025 160);
+  --muted-foreground: oklch(0.7 0.02 85);
+  --accent: oklch(0.3 0.04 160);
+  --accent-foreground: oklch(0.96 0.01 85);
+  --gold: oklch(0.78 0.14 82);
+  --gold-foreground: oklch(0.18 0.03 160);
+  --destructive: oklch(0.65 0.22 27);
+  --destructive-foreground: oklch(0.98 0 0);
+  --success: oklch(0.7 0.15 160);
+  --success-foreground: oklch(0.18 0.03 160);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.75 0.13 82);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv02";
+  }
+  h1, h2, h3, .font-serif { font-family: var(--font-serif); font-weight: 400; letter-spacing: -0.02em; }
+}
+
+@utility bg-gradient-hero { background: var(--gradient-hero); }
+@utility bg-gradient-gold { background: var(--gradient-gold); }
+@utility bg-gradient-cream { background: var(--gradient-cream); }
+@utility shadow-elegant { box-shadow: var(--shadow-lg); }
+@utility shadow-gold { box-shadow: var(--shadow-gold); }
+@utility text-balance { text-wrap: balance; }
