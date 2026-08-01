@@ -1,11 +1,14 @@
-import { Link } from "@tanstack/react-router";
+"use client";
+
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 import { formatPrice, isNewProduct } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart-context";
+import type { Product } from "@/lib/types";
 
-export function ProductCard({ product, index = 0 }) {
+export function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
   const { addItem } = useCart();
   const hasDiscount = product.discountPrice != null && product.discountPrice < product.price;
   const isNew = isNewProduct(product.createdAt);
@@ -18,7 +21,7 @@ export function ProductCard({ product, index = 0 }) {
       transition={{ duration: 0.4, delay: Math.min(index * 0.05, 0.4) }}
       className="group flex flex-col overflow-hidden rounded-xl border border-border/60 bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-elegant"
     >
-      <Link to="/products/$id" params={{ id: product._id }} className="relative block aspect-square overflow-hidden bg-muted">
+      <Link href={`/products/${product._id}`} className="relative block aspect-square overflow-hidden bg-muted">
         {product.images?.[0] && (
           <img
             src={product.images[0]}
@@ -39,7 +42,7 @@ export function ProductCard({ product, index = 0 }) {
           <span>{product.category}</span>
         </div>
 
-        <Link to="/products/$id" params={{ id: product._id }} className="line-clamp-2 min-h-[2.5rem] font-medium leading-snug hover:underline">
+        <Link href={`/products/${product._id}`} className="line-clamp-2 min-h-[2.5rem] font-medium leading-snug hover:underline">
           {product.title}
         </Link>
 
@@ -55,7 +58,7 @@ export function ProductCard({ product, index = 0 }) {
           <div>
             {hasDiscount ? (
               <div className="flex items-baseline gap-2">
-                <span className="font-serif text-xl">{formatPrice(product.discountPrice)}</span>
+                <span className="font-serif text-xl">{formatPrice(product.discountPrice ?? product.price)}</span>
                 <span className="text-xs text-muted-foreground line-through">{formatPrice(product.price)}</span>
               </div>
             ) : (

@@ -1,3 +1,9 @@
+export interface SellerSummary {
+  _id: string;
+  name: string;
+  photo?: string;
+}
+
 export interface Product {
   _id: string;
   title: string;
@@ -11,6 +17,8 @@ export interface Product {
   reviewCount?: number;
   stock: number;
   description?: string;
+  seller?: string | SellerSummary;
+  specifications?: Record<string, unknown>;
 }
 
 export interface User {
@@ -18,7 +26,7 @@ export interface User {
   name: string;
   email: string;
   role: "admin" | "buyer" | "seller";
-  avatar?: string;
+  photo?: string;
 }
 
 export interface CartItem extends Product {

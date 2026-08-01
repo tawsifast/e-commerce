@@ -1,22 +1,52 @@
+"use client";
+
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import type { Product } from "./types";
 
-const CartContext = createContext(null);
+const CartContext = createContext<CartContextValue>(null as unknown as CartContextValue);
 const KEY = "marketa_cart";
 
-export function CartProvider({ children }) {
-  const [items, setItems] = useState([]);
+interface CartItem {
+  productId: string;
+  title: string;
+  image?: string;
+  price: number;
+  stock: number;
+  quantity: number;
+  seller?: string;
+}
+
+type CartProduct = Pick<Product, "_id" | "title" | "price" | "discountPrice" | "stock" | "images" | "seller">;
+
+interface CartContextValue {
+  items: CartItem[];
+  count: number;
+  subtotal: number;
+  drawerOpen: boolean;
+  openDrawer: () => void;
+  closeDrawer: () => void;
+  addItem: (product: CartProduct, qty?: number) => void;
+  removeItem: (productId: string) => void;
+  updateQty: (productId: string, qty: number) => void;
+  clear: () => void;
+}
+
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  const [items, setItems] = useState<CartItem[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(KEY);
-      if (raw) setItems(JSON.parse(raw));
-    } catch {
-      /* noop */
-    }
-    setHydrated(true);
+    Promise.resolve().then(() => {
+      try {
+        const raw = window.localStorage.getItem(KEY);
+        if (raw) setItems(JSON.parse(raw));
+      } catch {
+        /* noop */
+      }
+      setHydrated(true);
+    });
   }, []);
 
   useEffect(() => {
@@ -24,7 +54,7 @@ export function CartProvider({ children }) {
     window.localStorage.setItem(KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
-  const addItem = useCallback((product, qty = 1) => {
+  const addItem = useCallback((product: CartProduct, qty = 1) => {
     setItems((prev) => {
       const existing = prev.find((i) => i.productId === product._id);
       if (existing) {
@@ -39,7 +69,7 @@ export function CartProvider({ children }) {
         {
           productId: product._id,
           title: product.title,
-          image: product.images[0],
+          image: product.images?.[0],
           price: product.discountPrice ?? product.price,
           stock: product.stock,
           quantity: Math.min(qty, product.stock),
@@ -50,11 +80,11 @@ export function CartProvider({ children }) {
     toast.success(`${product.title} added to cart`);
   }, []);
 
-  const removeItem = useCallback((productId) => {
+  const removeItem = useCallback((productId: string) => {
     setItems((prev) => prev.filter((i) => i.productId !== productId));
   }, []);
 
-  const updateQty = useCallback((productId, qty) => {
+  const updateQty = useCallback((productId: string, qty: number) => {
     setItems((prev) =>
       prev.map((i) =>
         i.productId === productId ? { ...i, quantity: Math.max(1, Math.min(qty, i.stock)) } : i,

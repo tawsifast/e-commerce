@@ -1,5 +1,8 @@
+"use client";
+
 import { AnimatePresence, motion } from "framer-motion";
-import { Link, useNavigate } from "@tanstack/react-router";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
@@ -7,7 +10,7 @@ import { formatPrice } from "@/lib/format";
 
 export function CartDrawer() {
   const { drawerOpen, closeDrawer, items, updateQty, removeItem, subtotal, count } = useCart();
-  const navigate = useNavigate();
+  const router = useRouter();
 
   return (
     <AnimatePresence>
@@ -45,9 +48,9 @@ export function CartDrawer() {
                 </div>
                 <div>
                   <p className="font-medium">Your bag is empty</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Discover pieces you'll love.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Discover pieces you&apos;ll love.</p>
                 </div>
-                <Button onClick={() => { closeDrawer(); void navigate({ to: "/products" }); }} className="bg-gradient-hero text-primary-foreground hover:opacity-90">
+                <Button onClick={() => { closeDrawer(); router.push("/products"); }} className="bg-gradient-hero text-primary-foreground hover:opacity-90">
                   Browse products
                 </Button>
               </div>
@@ -58,8 +61,7 @@ export function CartDrawer() {
                     {items.map((item) => (
                       <li key={item.productId} className="flex gap-4 py-4">
                         <Link
-                          to="/products/$id"
-                          params={{ id: item.productId }}
+                          href={`/products/${item.productId}`}
                           onClick={closeDrawer}
                           className="h-20 w-20 shrink-0 overflow-hidden rounded-md bg-muted"
                         >
@@ -68,8 +70,7 @@ export function CartDrawer() {
                         <div className="flex flex-1 flex-col gap-1">
                           <div className="flex items-start justify-between gap-2">
                             <Link
-                              to="/products/$id"
-                              params={{ id: item.productId }}
+                              href={`/products/${item.productId}`}
                               onClick={closeDrawer}
                               className="line-clamp-2 text-sm font-medium hover:underline"
                             >
@@ -105,10 +106,10 @@ export function CartDrawer() {
                   </div>
                   <p className="mb-4 text-xs text-muted-foreground">Shipping and taxes calculated at checkout.</p>
                   <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1" onClick={() => { closeDrawer(); void navigate({ to: "/cart" }); }}>
+                    <Button variant="outline" className="flex-1" onClick={() => { closeDrawer(); router.push("/cart"); }}>
                       View bag
                     </Button>
-                    <Button className="flex-1 bg-gradient-hero text-primary-foreground hover:opacity-90" onClick={() => { closeDrawer(); void navigate({ to: "/checkout" }); }}>
+                    <Button className="flex-1 bg-gradient-hero text-primary-foreground hover:opacity-90" onClick={() => { closeDrawer(); router.push("/checkout"); }}>
                       Checkout
                     </Button>
                   </div>
