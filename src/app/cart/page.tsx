@@ -38,17 +38,17 @@ export default function CartPage() {
                   <Link href={`/products/${item.productId}`} className="font-medium hover:underline">
                     {item.title}
                   </Link>
-                  <button onClick={() => removeItem(item.productId)} className="text-muted-foreground hover:text-destructive" aria-label="Remove">
+                  <Button variant="ghost" size="icon" onClick={() => removeItem(item.productId)} className="text-muted-foreground hover:bg-transparent hover:text-destructive!" aria-label="Remove">
                     <Trash2 className="h-4 w-4" />
-                  </button>
+                  </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">{formatPrice(item.price)}</p>
 
                 <div className="mt-auto flex items-center justify-between pt-4">
                   <div className="inline-flex items-center rounded-lg border border-border">
-                    <button onClick={() => updateQty(item.productId, item.quantity - 1)} className="grid h-9 w-9 place-items-center hover:bg-accent"><Minus className="h-3.5 w-3.5" /></button>
+                    <Button variant="ghost" size="icon" onClick={() => updateQty(item.productId, item.quantity - 1)} className="h-9 w-9 rounded-none hover:bg-accent!"><Minus className="h-3.5 w-3.5" /></Button>
                     <span className="w-10 text-center text-sm font-medium">{item.quantity}</span>
-                    <button onClick={() => updateQty(item.productId, item.quantity + 1)} className="grid h-9 w-9 place-items-center hover:bg-accent"><Plus className="h-3.5 w-3.5" /></button>
+                    <Button variant="ghost" size="icon" onClick={() => updateQty(item.productId, item.quantity + 1)} className="h-9 w-9 rounded-none hover:bg-accent!"><Plus className="h-3.5 w-3.5" /></Button>
                   </div>
                   <span className="font-serif text-xl">{formatPrice(item.price * item.quantity)}</span>
                 </div>
@@ -71,7 +71,7 @@ export default function CartPage() {
           <Link href="/checkout" className="mt-6 block">
             <Button className="w-full bg-gradient-hero text-primary-foreground hover:opacity-90">Proceed to checkout</Button>
           </Link>
-          <button onClick={clear} className="mt-3 w-full text-xs text-muted-foreground hover:text-destructive">Clear bag</button>
+          <Button variant="ghost" size="sm" onClick={clear} className="mt-3 h-auto w-full text-xs! text-muted-foreground hover:text-destructive!">Clear bag</Button>
         </aside>
       </div>
     </div>

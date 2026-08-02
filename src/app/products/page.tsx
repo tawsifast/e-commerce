@@ -89,12 +89,9 @@ function ProductsPage() {
           />
           <Button size="sm" type="submit" variant="ghost">Go</Button>
         </form>
-        <button
-          onClick={() => setFiltersOpen((s) => !s)}
-          className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm md:hidden"
-        >
+        <Button variant="outline" onClick={() => setFiltersOpen((s) => !s)} className="gap-2 px-3 md:hidden">
           <Filter className="h-4 w-4" /> Filters
-        </button>
+        </Button>
         <Select value={search.sort ?? "newest"} onValueChange={(v) => update({ sort: v as SearchParams["sort"] })}>
           <SelectTrigger className="w-[180px]"><SlidersHorizontal className="mr-2 h-4 w-4" /><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -114,19 +111,20 @@ function ProductsPage() {
               <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider">Category</h3>
               <ul className="space-y-1.5 text-sm">
                 <li>
-                  <button onClick={() => update({ category: undefined })} className={`w-full rounded px-2 py-1 text-left hover:bg-accent ${!search.category ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                  <Button variant="ghost" onClick={() => update({ category: undefined })} className={`h-auto w-full justify-start rounded px-2! py-1 font-normal hover:bg-accent! ${!search.category ? "font-medium text-foreground" : "text-muted-foreground"}`}>
                     All categories
-                  </button>
+                  </Button>
                 </li>
                 {(categories.data ?? []).map((c) => (
                   <li key={c.name}>
-                    <button
+                    <Button
+                      variant="ghost"
                       onClick={() => update({ category: c.name })}
-                      className={`flex w-full items-center justify-between rounded px-2 py-1 text-left hover:bg-accent ${search.category === c.name ? "font-medium text-foreground" : "text-muted-foreground"}`}
+                      className={`h-auto w-full justify-between! rounded px-2! py-1 font-normal hover:bg-accent! ${search.category === c.name ? "font-medium text-foreground" : "text-muted-foreground"}`}
                     >
                       <span>{c.name}</span>
                       <span className="text-xs">{c.count}</span>
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
@@ -200,13 +198,15 @@ function ProductsPage() {
                   {Array.from({ length: Math.min(active.pages, 7) }).map((_, i) => {
                     const p = i + 1;
                     return (
-                      <button
+                      <Button
                         key={p}
+                        variant="outline"
+                        size="icon"
                         onClick={() => update({ page: p })}
-                        className={`h-9 w-9 rounded-md text-sm ${active.page === p ? "bg-primary text-primary-foreground" : "border border-border hover:bg-accent"}`}
+                        className={`h-9 w-9 rounded-md ${active.page === p ? "bg-primary border-transparent text-primary-foreground" : "hover:bg-accent!"}`}
                       >
                         {p}
-                      </button>
+                      </Button>
                     );
                   })}
                   <Button

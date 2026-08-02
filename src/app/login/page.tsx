@@ -7,12 +7,13 @@ import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { getApiErrorMessage } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { refresh } = useAuth();
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [busy, setBusy] = useState(false);
@@ -21,7 +22,9 @@ export default function LoginPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      await login(form.email, form.password);
+      const { error } = await authClient.signIn.email({ email: form.email, password: form.password });
+      if (error) throw new Error(error.message);
+      await refresh();
       toast.success("Welcome back");
       router.push("/");
     } catch (err) {

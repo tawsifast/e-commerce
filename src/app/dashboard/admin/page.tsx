@@ -223,7 +223,7 @@ function UsersTab() {
                 <td className="px-6 py-3 text-muted-foreground">{u.email}</td>
                 <td className="px-6 py-3 text-muted-foreground">{u.createdAt ? formatDate(u.createdAt) : "—"}</td>
                 <td className="px-6 py-3">
-                  <Select value={u.role} onValueChange={(v) => changeRole.mutate({ id: u._id, role: v })}>
+                  <Select value={u.role} onValueChange={(v) => changeRole.mutate({ id: u._id, role: v ?? u.role })}>
                     <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {ROLES.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}
@@ -380,7 +380,7 @@ function OrdersTab() {
                 <td className="px-6 py-3">{formatPrice(o.total ?? 0)}</td>
                 <td className="px-6 py-3 text-muted-foreground">{o.createdAt ? formatDate(o.createdAt) : "—"}</td>
                 <td className="px-6 py-3">
-                  <Select value={o.status} onValueChange={(v) => updateStatus.mutate({ id: o._id, status: v })}>
+                  <Select value={o.status} onValueChange={(v) => updateStatus.mutate({ id: o._id, status: v ?? o.status })}>
                     <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {ORDER_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}

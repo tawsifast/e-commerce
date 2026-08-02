@@ -47,9 +47,11 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={openDrawer}
-            className="relative grid h-10 w-10 place-items-center rounded-full text-foreground/80 transition-colors hover:bg-accent"
+            className="relative h-10 w-10 rounded-full! text-foreground/80 hover:bg-accent!"
             aria-label="Open cart"
           >
             <ShoppingBag className="h-5 w-5" />
@@ -58,7 +60,7 @@ export function Navbar() {
                 {count}
               </span>
             )}
-          </button>
+          </Button>
 
           {user ? (
             <div className="hidden items-center gap-2 md:flex">
@@ -85,13 +87,15 @@ export function Navbar() {
             </div>
           )}
 
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setMobileOpen((s) => !s)}
-            className="grid h-10 w-10 place-items-center rounded-full md:hidden"
+            className="h-10 w-10 rounded-full! hover:bg-transparent md:hidden"
             aria-label="Toggle menu"
           >
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -112,12 +116,13 @@ export function Navbar() {
                   <MobileLink href={dashboardHref(user.role)} onClick={() => setMobileOpen(false)} icon={<LayoutDashboard className="h-4 w-4" />}>
                     Dashboard
                   </MobileLink>
-                  <button
+                  <Button
+                    variant="ghost"
                     onClick={() => { logout(); setMobileOpen(false); }}
-                    className="flex items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-medium text-destructive hover:bg-accent"
+                    className="h-auto w-full justify-start gap-3 rounded-md px-3 py-2.5 text-left text-destructive! hover:bg-accent!"
                   >
                     <LogOut className="h-4 w-4" /> Log out
-                  </button>
+                  </Button>
                 </>
               ) : (
                 <>

@@ -36,9 +36,9 @@ export function CartDrawer() {
                 <h2 className="font-serif text-2xl">Your bag</h2>
                 <p className="text-xs text-muted-foreground">{count} item{count === 1 ? "" : "s"}</p>
               </div>
-              <button onClick={closeDrawer} className="grid h-9 w-9 place-items-center rounded-full hover:bg-accent" aria-label="Close">
+              <Button variant="ghost" size="icon" onClick={closeDrawer} className="h-9 w-9 rounded-full! hover:bg-accent!" aria-label="Close">
                 <X className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
 
             {items.length === 0 ? (
@@ -76,20 +76,20 @@ export function CartDrawer() {
                             >
                               {item.title}
                             </Link>
-                            <button onClick={() => removeItem(item.productId)} className="text-muted-foreground hover:text-destructive" aria-label="Remove">
+                            <Button variant="ghost" size="icon" onClick={() => removeItem(item.productId)} className="text-muted-foreground hover:bg-transparent hover:text-destructive!" aria-label="Remove">
                               <Trash2 className="h-4 w-4" />
-                            </button>
+                            </Button>
                           </div>
                           <p className="text-sm text-muted-foreground">{formatPrice(item.price)}</p>
                           <div className="mt-auto flex items-center justify-between">
                             <div className="inline-flex items-center rounded-md border border-border">
-                              <button onClick={() => updateQty(item.productId, item.quantity - 1)} className="grid h-8 w-8 place-items-center hover:bg-accent" aria-label="Decrease">
+                              <Button variant="ghost" size="icon" onClick={() => updateQty(item.productId, item.quantity - 1)} className="h-8 w-8 rounded-none hover:bg-accent!" aria-label="Decrease">
                                 <Minus className="h-3 w-3" />
-                              </button>
+                              </Button>
                               <span className="w-8 text-center text-sm">{item.quantity}</span>
-                              <button onClick={() => updateQty(item.productId, item.quantity + 1)} className="grid h-8 w-8 place-items-center hover:bg-accent" aria-label="Increase">
+                              <Button variant="ghost" size="icon" onClick={() => updateQty(item.productId, item.quantity + 1)} className="h-8 w-8 rounded-none hover:bg-accent!" aria-label="Increase">
                                 <Plus className="h-3 w-3" />
-                              </button>
+                              </Button>
                             </div>
                             <span className="text-sm font-semibold">{formatPrice(item.price * item.quantity)}</span>
                           </div>

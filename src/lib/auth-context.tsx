@@ -1,17 +1,14 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { AuthAPI, TOKEN_KEY, type RegisterPayload } from "./api";
+import { authClient } from "./auth-client";
 
 const AuthContext = createContext<AuthContextValue>(null as unknown as AuthContextValue);
 
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<User>;
-  register: (payload: RegisterPayload) => Promise<User>;
-  googleLogin: (idToken: string) => Promise<User>;
-  logout: () => void;
+  logout: () => Promise<void>;
   refresh: () => Promise<void>;
   setUser: (user: User | null) => void;
 }
@@ -24,23 +21,25 @@ interface User {
   photo?: string;
 }
 
+function mapSessionUser(u: { id: string; name: string; email: string; image?: string | null }): User {
+  return {
+    _id: u.id,
+    name: u.name,
+    email: u.email,
+    role: (u as { role?: string }).role ?? "buyer",
+    photo: u.image ?? undefined,
+  };
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    if (typeof window === "undefined") return;
-    const token = window.localStorage.getItem(TOKEN_KEY);
-    if (!token) {
-      setUser(null);
-      setLoading(false);
-      return;
-    }
     try {
-      const u = await AuthAPI.me();
-      setUser(u);
+      const { data } = await authClient.getSession();
+      setUser(data?.user ? mapSessionUser(data.user) : null);
     } catch {
-      window.localStorage.removeItem(TOKEN_KEY);
       setUser(null);
     } finally {
       setLoading(false);
@@ -57,35 +56,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [refresh]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const { token, user: u } = await AuthAPI.login({ email, password });
-    window.localStorage.setItem(TOKEN_KEY, token);
-    setUser(u);
-    return u;
-  }, []);
-
-  const register = useCallback(async (payload: RegisterPayload) => {
-    const { token, user: u } = await AuthAPI.register(payload);
-    window.localStorage.setItem(TOKEN_KEY, token);
-    setUser(u);
-    return u;
-  }, []);
-
-  const googleLogin = useCallback(async (idToken: string) => {
-    const { token, user: u } = await AuthAPI.googleLogin(idToken);
-    window.localStorage.setItem(TOKEN_KEY, token);
-    setUser(u);
-    return u;
-  }, []);
-
-  const logout = useCallback(() => {
-    window.localStorage.removeItem(TOKEN_KEY);
+  const logout = useCallback(async () => {
+    await authClient.signOut();
     setUser(null);
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, register, googleLogin, logout, refresh, setUser }),
-    [user, loading, login, register, googleLogin, logout, refresh],
+    () => ({ user, loading, logout, refresh, setUser }),
+    [user, loading, logout, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

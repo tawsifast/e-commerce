@@ -7,12 +7,13 @@ import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { getApiErrorMessage } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function RegisterPage() {
-  const { register } = useAuth();
+  const { refresh } = useAuth();
   const router = useRouter();
   const [form, setForm] = useState({ name: "", email: "", password: "", photo: "" });
   const [busy, setBusy] = useState(false);
@@ -25,7 +26,14 @@ export default function RegisterPage() {
     }
     setBusy(true);
     try {
-      await register({ name: form.name, email: form.email, password: form.password, photo: form.photo || undefined });
+      const { error } = await authClient.signUp.email({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        image: form.photo || undefined,
+      });
+      if (error) throw new Error(error.message);
+      await refresh();
       toast.success("Account created — welcome");
       router.push("/");
     } catch (err) {

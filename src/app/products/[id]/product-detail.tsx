@@ -9,7 +9,7 @@ import { useState } from "react";
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import toast from "react-hot-toast";
-import { getApiErrorMessage, ProductsAPI, WishlistAPI, type ReviewItem } from "@/lib/api";
+import { getApiErrorMessage, ProductsAPI, WishlistAPI } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/lib/auth-context";
@@ -114,13 +114,15 @@ export function ProductDetail({ id }: { id: string }) {
           {(p.images?.length ?? 0) > 1 && (
             <div className="mt-3 grid grid-cols-5 gap-2">
               {(p.images ?? []).map((img, i) => (
-                <button
+                <Button
                   key={i}
+                  variant="ghost"
+                  size="icon"
                   onClick={() => setActiveImg(i)}
-                  className={`aspect-square overflow-hidden rounded-md border-2 ${i === activeImg ? "border-primary" : "border-transparent"}`}
+                  className={`aspect-square h-auto w-auto overflow-hidden rounded-md border-2! p-0 ${i === activeImg ? "border-primary!" : "border-transparent"}`}
                 >
                   <img src={img} alt="" className="h-full w-full object-cover" />
-                </button>
+                </Button>
               ))}
             </div>
           )}
@@ -161,9 +163,9 @@ export function ProductDetail({ id }: { id: string }) {
 
           <div className="mt-8 flex items-center gap-3">
             <div className="inline-flex items-center rounded-lg border border-border">
-              <button onClick={() => setQty(Math.max(1, qty - 1))} className="grid h-11 w-11 place-items-center hover:bg-accent"><Minus className="h-4 w-4" /></button>
+              <Button variant="ghost" size="icon" onClick={() => setQty(Math.max(1, qty - 1))} className="h-11 w-11 rounded-none hover:bg-accent!"><Minus className="h-4 w-4" /></Button>
               <span className="w-10 text-center text-sm font-medium">{qty}</span>
-              <button onClick={() => setQty(Math.min(p.stock, qty + 1))} className="grid h-11 w-11 place-items-center hover:bg-accent"><Plus className="h-4 w-4" /></button>
+              <Button variant="ghost" size="icon" onClick={() => setQty(Math.min(p.stock, qty + 1))} className="h-11 w-11 rounded-none hover:bg-accent!"><Plus className="h-4 w-4" /></Button>
             </div>
             <span className="text-xs text-muted-foreground">{p.stock} in stock</span>
           </div>
@@ -210,9 +212,9 @@ export function ProductDetail({ id }: { id: string }) {
             <p className="text-sm font-medium">Share your experience</p>
             <div className="mt-3 flex gap-1">
               {Array.from({ length: 5 }).map((_, i) => (
-                <button key={i} onClick={() => setRating(i + 1)}>
+                <Button key={i} variant="ghost" size="icon" onClick={() => setRating(i + 1)}>
                   <Star className={`h-6 w-6 ${i < rating ? "fill-gold text-gold" : "text-muted"}`} />
-                </button>
+                </Button>
               ))}
             </div>
             <Textarea

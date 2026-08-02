@@ -151,7 +151,7 @@ function OverviewTab() {
 
       <div className="flex items-center justify-between">
         <h2 className="font-serif text-2xl">Sales trend</h2>
-        <Select value={range} onValueChange={setRange}>
+        <Select value={range} onValueChange={(v) => setRange(v ?? "7d")}>
           <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="7d">Last 7 days</SelectItem>
@@ -300,11 +300,13 @@ function ProductsTab() {
           <p className="text-sm text-muted-foreground">{items.length} listed</p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openCreate} className="bg-gradient-hero text-primary-foreground hover:opacity-90">
-              <Plus className="mr-2 h-4 w-4" /> New product
-            </Button>
-          </DialogTrigger>
+          <DialogTrigger
+            render={
+              <Button onClick={openCreate} className="bg-gradient-hero text-primary-foreground hover:opacity-90">
+                <Plus className="mr-2 h-4 w-4" /> New product
+              </Button>
+            }
+          />
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>{editing ? "Edit product" : "Create product"}</DialogTitle>
@@ -453,7 +455,7 @@ function OrdersTab() {
                   <td className="px-6 py-3">{formatPrice(o.total ?? 0)}</td>
                   <td className="px-6 py-3 text-muted-foreground">{o.createdAt ? formatDate(o.createdAt) : "—"}</td>
                   <td className="px-6 py-3">
-                    <Select value={o.status} onValueChange={(v) => updateStatus.mutate({ id: o._id, status: v })}>
+                    <Select value={o.status} onValueChange={(v) => updateStatus.mutate({ id: o._id, status: v ?? o.status })}>
                       <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {ORDER_STATUSES.map((s) => (

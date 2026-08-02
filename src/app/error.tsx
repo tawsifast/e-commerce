@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
@@ -14,15 +15,12 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
         <h1 className="font-serif text-3xl text-foreground">This page didn&apos;t load</h1>
         <p className="mt-2 text-sm text-muted-foreground">Something went wrong. Try refreshing or head back home.</p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => reset()}
-            className="inline-flex items-center justify-center rounded-md bg-gradient-hero px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-          >
+          <Button onClick={() => reset()} className="bg-gradient-hero px-4 text-primary-foreground hover:opacity-90">
             Try again
-          </button>
-          <Link href="/" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground hover:bg-accent">
+          </Button>
+          <Button variant="outline" className="rounded-md border-input px-4 hover:bg-accent!" render={<Link href="/" />}>
             Go home
-          </Link>
+          </Button>
         </div>
       </div>
     </div>

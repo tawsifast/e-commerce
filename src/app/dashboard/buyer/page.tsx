@@ -98,16 +98,17 @@ export default function BuyerDashboard() {
               const Icon = t.icon;
               const active = tab === t.id;
               return (
-                <button
+                <Button
                   key={t.id}
+                  variant="ghost"
                   onClick={() => setTab(t.id)}
-                  className={`flex shrink-0 items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm transition-colors lg:w-full ${
-                    active ? "bg-gradient-hero text-primary-foreground shadow-sm" : "text-foreground/70 hover:bg-accent"
+                  className={`h-auto shrink-0 justify-start gap-2.5 rounded-lg px-3 py-2.5 text-left lg:w-full ${
+                    active ? "bg-gradient-hero text-primary-foreground shadow-sm" : "text-foreground/70 hover:bg-accent! hover:text-foreground/70!"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
                   <span className="font-medium">{t.label}</span>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -338,13 +339,15 @@ function WishlistTab() {
               <Link href={`/products/${p._id}`} className="line-clamp-2 text-sm font-medium hover:underline">
                 {p.title}
               </Link>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => remove.mutate(p._id)}
-                className="text-muted-foreground hover:text-destructive"
+                className="text-muted-foreground hover:bg-transparent hover:text-destructive!"
                 aria-label="Remove from wishlist"
               >
                 <Trash2 className="h-4 w-4" />
-              </button>
+              </Button>
             </div>
             <p className="mt-1 text-xs uppercase tracking-wider text-muted-foreground">{p.brand}</p>
             <div className="mt-auto flex items-end justify-between pt-3">

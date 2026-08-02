@@ -1,10 +1,25 @@
 import axios, { AxiosError } from "axios";
 import type { Order, Product, Review, User } from "./types";
+import {
+  mockAdmin,
+  mockAuth,
+  mockOrders,
+  mockProducts,
+  mockReviews,
+  mockSeller,
+  mockWishlist,
+} from "./mock-data";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
 
 export const TOKEN_KEY = "marketa_token";
+
+// Mock mode is on by default so the app runs without the backend.
+// Attach the real API later by setting NEXT_PUBLIC_API_BASE_URL
+// (or NEXT_PUBLIC_USE_MOCK=false) and removing ./mock-data.ts.
+export const USE_MOCK_API =
+  !process.env.NEXT_PUBLIC_API_BASE_URL && process.env.NEXT_PUBLIC_USE_MOCK !== "false";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -89,7 +104,7 @@ export interface ProductPayload {
   images: string[];
 }
 
-export const AuthAPI = {
+const restAuth = {
   register: (payload: RegisterPayload) =>
     api.post<AuthResponse>("/auth/register", payload).then((r) => r.data),
   login: (payload: LoginPayload) =>
@@ -103,7 +118,9 @@ export const AuthAPI = {
     api.patch("/auth/password", payload).then((r) => r.data),
 };
 
-export const ProductsAPI = {
+export const AuthAPI = USE_MOCK_API ? mockAuth : restAuth;
+
+const restProducts = {
   list: (q: Record<string, unknown> = {}) =>
     api.get<ProductListResponse>("/products", { params: q }).then((r) => r.data),
   featured: () =>
@@ -120,7 +137,9 @@ export const ProductsAPI = {
     api.post<{ review: Review }>(`/products/${id}/reviews`, payload).then((r) => r.data.review),
 };
 
-export const WishlistAPI = {
+export const ProductsAPI = USE_MOCK_API ? mockProducts : restProducts;
+
+const restWishlist = {
   list: () => api.get("/wishlist").then((r) => r.data.items),
   add: (productId: string) =>
     api.post("/wishlist", { productId }).then((r) => r.data),
@@ -128,7 +147,9 @@ export const WishlistAPI = {
     api.delete(`/wishlist/${productId}`).then((r) => r.data),
 };
 
-export const OrdersAPI = {
+export const WishlistAPI = USE_MOCK_API ? mockWishlist : restWishlist;
+
+const restOrders = {
   create: (payload: unknown) =>
     api.post("/orders/checkout", payload).then((r) => r.data),
   confirm: (orderId: string, paymentIntentId: string) =>
@@ -139,15 +160,19 @@ export const OrdersAPI = {
     api.post<{ order: Order }>(`/orders/${orderId}/cancel`).then((r) => r.data.order),
 };
 
-export const ReviewsAPI = {
+export const OrdersAPI = USE_MOCK_API ? mockOrders : restOrders;
+
+const restReviews = {
   latest: () =>
     api.get<{ items: HomeReview[] }>("/reviews/latest").then((r) => r.data.items),
 };
 
+export const ReviewsAPI = USE_MOCK_API ? mockReviews : restReviews;
+
 // ============================================================
 // Seller
 // ============================================================
-export const SellerAPI = {
+const restSeller = {
   overview: () => api.get("/seller/overview").then((r) => r.data),
   analytics: (range = "30d") =>
     api.get("/seller/analytics", { params: { range } }).then((r) => r.data),
@@ -167,10 +192,12 @@ export const SellerAPI = {
     api.post("/seller/apply").then((r) => r.data),
 };
 
+export const SellerAPI = USE_MOCK_API ? mockSeller : restSeller;
+
 // ============================================================
 // Admin
 // ============================================================
-export const AdminAPI = {
+const restAdmin = {
   overview: () => api.get("/admin/overview").then((r) => r.data),
   users: (q: Record<string, unknown> = {}) =>
     api.get("/admin/users", { params: q }).then((r) => r.data),
@@ -191,3 +218,5 @@ export const AdminAPI = {
   updateOrderStatus: (id: string, status: string) =>
     api.patch(`/admin/orders/${id}/status`, { status }).then((r) => r.data.order),
 };
+
+export const AdminAPI = USE_MOCK_API ? mockAdmin : restAdmin;
