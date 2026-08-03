@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { CheckCircle2, Lock } from "lucide-react";
+import { CheckCircle2, Lock, Loader2 } from "lucide-react";
 import { z } from "zod";
 import { getApiErrorMessage, OrdersAPI } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
@@ -28,9 +28,8 @@ const schema = z.object({
 
 export default function CheckoutPage() {
   const { user, loading } = useAuth();
-  const { items, subtotal, clear } = useCart();
+  const { items, subtotal } = useCart();
   const router = useRouter();
-  const [done, setDone] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -52,40 +51,33 @@ export default function CheckoutPage() {
         throw new Error("Please fix the highlighted fields");
       }
       setErrors({});
+
       const res = await OrdersAPI.create({
         items: items.map((i) => ({ product: i.productId, quantity: i.quantity })),
         address: { line1: form.line1, city: form.city, state: form.state, zip: form.zip, country: form.country },
         contact: form.contact,
         notes: form.notes || undefined,
       });
-      // NOTE: Real Stripe integration happens on your server — this UI expects a `clientSecret`
-      // returned from POST /orders/checkout. Wire Stripe.js on your end and confirm with:
-      //   await OrdersAPI.confirm(res.orderId, paymentIntentId)
-      return res;
+
+      const sessionRes = await fetch("/api/checkout_sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: res.orderId,
+          items: items.map((i) => ({ title: i.title, image: i.image, price: i.price, quantity: i.quantity })),
+        }),
+      });
+      const session = await sessionRes.json().catch(() => ({}));
+      if (!sessionRes.ok || !session.url) {
+        throw new Error(session.error ?? "Could not start payment");
+      }
+      return session.url as string;
     },
-    onSuccess: () => {
-      toast.success("Order placed successfully");
-      clear();
-      setDone(true);
+    onSuccess: (url) => {
+      window.location.href = url;
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Checkout failed")),
   });
-
-  if (done) {
-    return (
-      <div className="mx-auto max-w-lg px-4 py-24 text-center">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-success/15 text-success">
-          <CheckCircle2 className="h-9 w-9" />
-        </div>
-        <h1 className="mt-6 font-serif text-5xl">Thank you</h1>
-        <p className="mt-3 text-sm text-muted-foreground">Your order is confirmed. We&apos;ve sent details to your email.</p>
-        <div className="mt-8 flex justify-center gap-2">
-          <Link href="/dashboard/buyer"><Button variant="outline">View my orders</Button></Link>
-          <Link href="/products"><Button className="bg-gradient-hero text-primary-foreground hover:opacity-90">Keep shopping</Button></Link>
-        </div>
-      </div>
-    );
-  }
 
   if (items.length === 0) {
     return (
@@ -143,7 +135,7 @@ export default function CheckoutPage() {
               <div className="mb-2 flex items-center gap-2 text-foreground">
                 <Lock className="h-4 w-4" /> <span className="font-medium">Secure Stripe checkout</span>
               </div>
-              Stripe Elements will render here after you wire <code className="rounded bg-background px-1.5 py-0.5">POST /orders/checkout</code> on your server to return a Stripe <code className="rounded bg-background px-1.5 py-0.5">clientSecret</code>.
+              You&apos;ll be redirected to Stripe&apos;s secure payment page to complete your purchase.
             </div>
           </div>
 
@@ -152,7 +144,8 @@ export default function CheckoutPage() {
             disabled={checkout.isPending}
             className="h-12 w-full bg-gradient-hero text-primary-foreground hover:opacity-90"
           >
-            {checkout.isPending ? "Placing order…" : `Place order · ${formatPrice(subtotal)}`}
+            {checkout.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {checkout.isPending ? "Redirecting to payment…" : `Place order · ${formatPrice(subtotal)}`}
           </Button>
         </form>
 

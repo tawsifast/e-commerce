@@ -11,11 +11,14 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+type SignUpEmailBody = Parameters<typeof authClient.signUp.email>[0] & { role?: string };
 
 export default function RegisterPage() {
   const { refresh } = useAuth();
   const router = useRouter();
-  const [form, setForm] = useState({ name: "", email: "", password: "", photo: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", photo: "", role: "buyer" });
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -31,7 +34,8 @@ export default function RegisterPage() {
         email: form.email,
         password: form.password,
         image: form.photo || undefined,
-      });
+        role: form.role,
+      } as SignUpEmailBody);
       if (error) throw new Error(error.message);
       await refresh();
       toast.success("Account created — welcome");
@@ -70,9 +74,18 @@ export default function RegisterPage() {
               <Label htmlFor="photo">Photo URL (optional)</Label>
               <Input id="photo" type="url" value={form.photo} onChange={(e) => setForm({ ...form, photo: e.target.value })} placeholder="https://…" className="mt-1.5 h-11" />
             </div>
-            <p className="text-xs text-muted-foreground">
-              You&apos;ll join as a <strong>Buyer</strong>. Want to sell? You can upgrade from your dashboard.
-            </p>
+            <div>
+              <Label htmlFor="role">Role</Label>
+              <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v ?? "buyer" })}>
+                <SelectTrigger className="mt-1.5 h-11 w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="buyer">Buyer</SelectItem>
+                  <SelectItem value="seller">Seller</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="mt-1 text-xs text-muted-foreground">Dev preview — anyone can pick any role.</p>
+            </div>
             <Button type="submit" disabled={busy} className="h-11 w-full bg-gradient-hero text-primary-foreground hover:opacity-90">
               {busy ? "Creating account…" : "Create account"}
             </Button>

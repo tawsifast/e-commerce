@@ -152,8 +152,8 @@ export const WishlistAPI = USE_MOCK_API ? mockWishlist : restWishlist;
 const restOrders = {
   create: (payload: unknown) =>
     api.post("/orders/checkout", payload).then((r) => r.data),
-  confirm: (orderId: string, paymentIntentId: string) =>
-    api.post<{ order: Order }>(`/orders/${orderId}/confirm`, { paymentIntentId }).then((r) => r.data.order),
+  confirm: (orderId: string, sessionId: string) =>
+    api.post<{ order: Order }>(`/orders/${orderId}/confirm`, { sessionId }).then((r) => r.data.order),
   myOrders: (page = 1, limit = 10) =>
     api.get("/orders/my", { params: { page, limit } }).then((r) => r.data),
   cancel: (orderId: string) =>
