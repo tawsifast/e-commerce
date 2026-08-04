@@ -2,13 +2,21 @@
 
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
 import { OrdersAPI } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
 
 export default function SuccessPage() {
+  return (
+    <Suspense fallback={null}>
+      <SuccessPageInner />
+    </Suspense>
+  );
+}
+
+function SuccessPageInner() {
   const params = useSearchParams();
   const router = useRouter();
   const { clear } = useCart();

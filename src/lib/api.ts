@@ -13,8 +13,6 @@ import {
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
 
-export const TOKEN_KEY = "marketa_token";
-
 // Mock mode is on by default so the app runs without the backend.
 // Attach the real API later by setting NEXT_PUBLIC_API_BASE_URL
 // (or NEXT_PUBLIC_USE_MOCK=false) and removing ./mock-data.ts.
@@ -24,15 +22,27 @@ export const USE_MOCK_API =
 export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: { "Content-Type": "application/json" },
+  withCredentials: true,
 });
 
-api.interceptors.request.use((config) => {
-  if (typeof window !== "undefined") {
-    const token = window.localStorage.getItem(TOKEN_KEY);
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+// Exchange the better-auth session for the API JWT cookie issued by the
+// Express server. The cookie is HttpOnly and auto-sent on every request.
+export async function exchangeApiToken(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/auth/token`, { method: "POST", credentials: "include" });
+    return res.ok;
+  } catch {
+    return false;
   }
-  return config;
-});
+}
+
+export async function logoutApiToken(): Promise<void> {
+  try {
+    await fetch(`${API_BASE_URL}/auth/logout`, { method: "POST", credentials: "include" });
+  } catch {
+    // best effort — token expires on its own
+  }
+}
 
 export function getApiErrorMessage(err: unknown, fallback = "Something went wrong") {
   if (err instanceof AxiosError) {

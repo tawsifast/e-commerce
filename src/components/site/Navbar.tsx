@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, ShoppingBag, User as UserIcon, X, LogOut, LayoutDashboard, Search } from "lucide-react";
+import { Menu, ShoppingBag, User as UserIcon, X, LogOut, LayoutDashboard, Search, Info, Mail } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
@@ -38,6 +38,12 @@ export function Navbar() {
           </Link>
           <Link href="/products" className={`text-sm font-medium transition-colors hover:text-foreground ${isActive(pathname, "/products") ? "text-foreground" : "text-foreground/70"}`}>
             All Products
+          </Link>
+          <Link href="/about" className={`text-sm font-medium transition-colors hover:text-foreground ${isActive(pathname, "/about") ? "text-foreground" : "text-foreground/70"}`}>
+            About
+          </Link>
+          <Link href="/contact" className={`text-sm font-medium transition-colors hover:text-foreground ${isActive(pathname, "/contact") ? "text-foreground" : "text-foreground/70"}`}>
+            Contact
           </Link>
           {user && (
             <Link href={dashboardHref(user.role)} className={`text-sm font-medium transition-colors hover:text-foreground ${isActive(pathname, "/dashboard") ? "text-foreground" : "text-foreground/70"}`}>
@@ -111,6 +117,8 @@ export function Navbar() {
             <div className="flex flex-col gap-1 px-4 py-4">
               <MobileLink href="/" onClick={() => setMobileOpen(false)} icon={<Search className="h-4 w-4" />}>Home</MobileLink>
               <MobileLink href="/products" onClick={() => setMobileOpen(false)} icon={<ShoppingBag className="h-4 w-4" />}>All Products</MobileLink>
+              <MobileLink href="/about" onClick={() => setMobileOpen(false)} icon={<Info className="h-4 w-4" />}>About</MobileLink>
+              <MobileLink href="/contact" onClick={() => setMobileOpen(false)} icon={<Mail className="h-4 w-4" />}>Contact</MobileLink>
               {user ? (
                 <>
                   <MobileLink href={dashboardHref(user.role)} onClick={() => setMobileOpen(false)} icon={<LayoutDashboard className="h-4 w-4" />}>
