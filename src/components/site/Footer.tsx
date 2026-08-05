@@ -33,9 +33,9 @@ export function Footer() {
             A curated marketplace where independent sellers and thoughtful buyers find each other.
           </p>
           <div className="mt-6 flex gap-3">
-            <a href="#" aria-label="Instagram" className="grid h-9 w-9 place-items-center rounded-full border border-border text-foreground/60 hover:text-foreground"><InstagramIcon /></a>
+            <a href="https://www.instagram.com/_t_a_w_s_i_f__" aria-label="Instagram" className="grid h-9 w-9 place-items-center rounded-full border border-border text-foreground/60 hover:text-foreground"><InstagramIcon /></a>
             <a href="#" aria-label="X" className="grid h-9 w-9 place-items-center rounded-full border border-border text-foreground/60 hover:text-foreground"><XIcon /></a>
-            <a href="#" aria-label="Facebook" className="grid h-9 w-9 place-items-center rounded-full border border-border text-foreground/60 hover:text-foreground"><FacebookIcon /></a>
+            <a href="https://www.facebook.com/mdtawsifulislam.islam" aria-label="Facebook" className="grid h-9 w-9 place-items-center rounded-full border border-border text-foreground/60 hover:text-foreground"><FacebookIcon /></a>
           </div>
         </div>
         <FooterCol title="Shop">

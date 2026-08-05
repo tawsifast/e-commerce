@@ -1,23 +1,8 @@
 import axios, { AxiosError } from "axios";
 import type { Order, Product, Review, User } from "./types";
-import {
-  mockAdmin,
-  mockAuth,
-  mockOrders,
-  mockProducts,
-  mockReviews,
-  mockSeller,
-  mockWishlist,
-} from "./mock-data";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
-
-// Mock mode is on by default so the app runs without the backend.
-// Attach the real API later by setting NEXT_PUBLIC_API_BASE_URL
-// (or NEXT_PUBLIC_USE_MOCK=false) and removing ./mock-data.ts.
-export const USE_MOCK_API =
-  !process.env.NEXT_PUBLIC_API_BASE_URL && process.env.NEXT_PUBLIC_USE_MOCK !== "false";
 
 export const api = axios.create({
   baseURL: API_BASE_URL,
@@ -128,7 +113,7 @@ const restAuth = {
     api.patch("/auth/password", payload).then((r) => r.data),
 };
 
-export const AuthAPI = USE_MOCK_API ? mockAuth : restAuth;
+export const AuthAPI = restAuth;
 
 const restProducts = {
   list: (q: Record<string, unknown> = {}) =>
@@ -147,7 +132,7 @@ const restProducts = {
     api.post<{ review: Review }>(`/products/${id}/reviews`, payload).then((r) => r.data.review),
 };
 
-export const ProductsAPI = USE_MOCK_API ? mockProducts : restProducts;
+export const ProductsAPI = restProducts;
 
 const restWishlist = {
   list: () => api.get("/wishlist").then((r) => r.data.items),
@@ -157,7 +142,7 @@ const restWishlist = {
     api.delete(`/wishlist/${productId}`).then((r) => r.data),
 };
 
-export const WishlistAPI = USE_MOCK_API ? mockWishlist : restWishlist;
+export const WishlistAPI = restWishlist;
 
 const restOrders = {
   create: (payload: unknown) =>
@@ -170,14 +155,14 @@ const restOrders = {
     api.post<{ order: Order }>(`/orders/${orderId}/cancel`).then((r) => r.data.order),
 };
 
-export const OrdersAPI = USE_MOCK_API ? mockOrders : restOrders;
+export const OrdersAPI = restOrders;
 
 const restReviews = {
   latest: () =>
     api.get<{ items: HomeReview[] }>("/reviews/latest").then((r) => r.data.items),
 };
 
-export const ReviewsAPI = USE_MOCK_API ? mockReviews : restReviews;
+export const ReviewsAPI = restReviews;
 
 // ============================================================
 // Seller
@@ -202,7 +187,7 @@ const restSeller = {
     api.post("/seller/apply").then((r) => r.data),
 };
 
-export const SellerAPI = USE_MOCK_API ? mockSeller : restSeller;
+export const SellerAPI = restSeller;
 
 // ============================================================
 // Admin
@@ -229,4 +214,4 @@ const restAdmin = {
     api.patch(`/admin/orders/${id}/status`, { status }).then((r) => r.data.order),
 };
 
-export const AdminAPI = USE_MOCK_API ? mockAdmin : restAdmin;
+export const AdminAPI = restAdmin;
