@@ -7,6 +7,7 @@ import { Filter, Search, SlidersHorizontal, X } from "lucide-react";
 import { Suspense, useMemo, useState } from "react";
 import { z } from "zod";
 import { API_BASE_URL, ProductsAPI } from "@/lib/api";
+import { groupCategories } from "@/lib/categories";
 import { ProductCard, ProductCardSkeleton } from "@/components/site/ProductCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,7 @@ function ProductsPage() {
 
   const [searchInput, setSearchInput] = useState(search.search ?? "");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: ["products", search],
@@ -45,10 +47,12 @@ function ProductsPage() {
   });
 
   const categories = useQuery({ queryKey: ["categories"], queryFn: () => ProductsAPI.categories() });
+  const groups = groupCategories(categories.data ?? []);
 
   const update = (patch: SearchPatch) => {
     const params = new URLSearchParams(searchParams.toString());
     const merged = { ...search, ...patch };
+    if (patch.page === undefined) params.delete("page");
     for (const [k, v] of Object.entries(merged)) {
       if (v === undefined || v === null || v === "" || (k === "page" && v === 1)) {
         params.delete(k);
@@ -103,39 +107,54 @@ function ProductsPage() {
         </Select>
       </div>
 
+      {/* Category pills */}
+      <div className="mt-6 flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => { setOpenGroup(null); update({ category: undefined, page: 1 }); }}
+          className={`flex h-8 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors hover:bg-accent ${!search.category ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}
+        >
+          <Filter className="h-4 w-4" />
+          All categories
+        </button>
+        {groups.map((g) => {
+          const isActive = !!search.category && g.items.some((c) => c.name === search.category);
+          return (
+            <Select
+              key={g.group}
+              items={g.items.map((c) => ({ label: c.name, value: c.name }))}
+              value={isActive ? search.category : null}
+              open={openGroup === g.group}
+              onOpenChange={(o) => setOpenGroup(o ? g.group : null)}
+              onValueChange={(v) => { setOpenGroup(null); update({ category: v ?? undefined, page: 1 }); }}
+            >
+              <SelectTrigger
+                className={`h-8 rounded-full px-3 text-sm font-medium transition-colors hover:bg-accent ${isActive ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}
+              >
+                <SelectValue placeholder={g.group} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={null}>All {g.group}</SelectItem>
+                {g.items.map((c) => (
+                  <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          );
+        })}
+      </div>
+
       <div className="mt-6 grid gap-8 lg:grid-cols-[240px_1fr]">
         {/* Sidebar */}
         <aside className={`${filtersOpen ? "block" : "hidden"} lg:block`}>
           <div className="sticky top-24 space-y-6 rounded-xl border border-border bg-card p-5">
             <div>
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider">Category</h3>
-              <ul className="space-y-1.5 text-sm">
-                <li>
-                  <Button variant="ghost" onClick={() => update({ category: undefined })} className={`h-auto w-full justify-start rounded px-2! py-1 font-normal hover:bg-accent! ${!search.category ? "font-medium text-foreground" : "text-muted-foreground"}`}>
-                    All categories
-                  </Button>
-                </li>
-                {(categories.data ?? []).map((c) => (
-                  <li key={c.name}>
-                    <Button
-                      variant="ghost"
-                      onClick={() => update({ category: c.name })}
-                      className={`h-auto w-full justify-between! rounded px-2! py-1 font-normal hover:bg-accent! ${search.category === c.name ? "font-medium text-foreground" : "text-muted-foreground"}`}
-                    >
-                      <span>{c.name}</span>
-                      <span className="text-xs">{c.count}</span>
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div>
               <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider">Brand</h3>
               <Input
+                key={search.brand ? `brand-${search.brand}` : "brand"}
                 placeholder="e.g. Aesop"
                 defaultValue={search.brand ?? ""}
-                onBlur={(e) => update({ brand: e.target.value || undefined })}
+                onBlur={(e) => update({ brand: e.target.value.trim() || undefined })}
+                onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
               />
             </div>
 
@@ -143,16 +162,20 @@ function ProductsPage() {
               <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider">Price range</h3>
               <div className="flex gap-2">
                 <Input
+                  key={search.minPrice != null ? `min-${search.minPrice}` : "min"}
                   type="number"
                   placeholder="Min"
-                  defaultValue={search.minPrice ?? ""}
+                  defaultValue={search.minPrice != null ? String(search.minPrice) : ""}
                   onBlur={(e) => update({ minPrice: e.target.value ? Number(e.target.value) : undefined })}
+                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                 />
                 <Input
+                  key={search.maxPrice != null ? `max-${search.maxPrice}` : "max"}
                   type="number"
                   placeholder="Max"
-                  defaultValue={search.maxPrice ?? ""}
+                  defaultValue={search.maxPrice != null ? String(search.maxPrice) : ""}
                   onBlur={(e) => update({ maxPrice: e.target.value ? Number(e.target.value) : undefined })}
+                  onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
                 />
               </div>
             </div>

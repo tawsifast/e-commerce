@@ -13,7 +13,8 @@ export const metadata: Metadata = {
   authors: [{ name: "Marketa" }],
   openGraph: {
     title: "Marketa — A curated marketplace",
-    description: "Discover thoughtfully-made products from independent sellers.",
+    description:
+      "Discover thoughtfully-made products from independent sellers.",
     type: "website",
   },
   twitter: { card: "summary_large_image" },
@@ -38,14 +39,19 @@ export default function RootLayout({
           </div>
           <Toaster
             position="top-center"
-            toastOptions={{
-              style: {
-                background: "hsl(var(--card))",
-                color: "hsl(var(--card-foreground))",
-                border: "1px solid hsl(var(--border))",
-                fontSize: "14px",
-              },
-            }}
+  containerStyle={{
+    position: "fixed",
+    zIndex: 99999,
+  }}
+  toastOptions={{
+    style: {
+      backgroundColor: "#ffffff", // Use a solid color (e.g. #ffffff or #18181b for dark mode)
+      color: "hsl(var(--card-foreground))",
+      border: "1px solid hsl(var(--border))",
+      fontSize: "14px",
+      boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)", // Adds separation from background text
+    },
+  }}
           />
         </Providers>
       </body>
