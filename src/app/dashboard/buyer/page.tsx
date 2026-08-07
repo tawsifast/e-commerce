@@ -20,8 +20,9 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { API_BASE_URL, AuthAPI, getApiErrorMessage, OrdersAPI, WishlistAPI } from "@/lib/api";
+import { API_BASE_URL, getApiErrorMessage, OrdersAPI, WishlistAPI } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { authClient } from "@/lib/auth-client";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -371,21 +372,33 @@ function WishlistTab() {
 // -------------------- Profile --------------------
 
 function ProfileTab() {
-  const { user, setUser } = useAuth();
+  const { user, refresh } = useAuth();
   const [form, setForm] = useState({ name: user?.name ?? "", email: user?.email ?? "", photo: user?.photo ?? "" });
   const [pwd, setPwd] = useState({ currentPassword: "", newPassword: "" });
 
   const saveProfile = useMutation({
-    mutationFn: () => AuthAPI.updateProfile(form),
-    onSuccess: (updated) => {
+    mutationFn: async () => {
+      const { error } = await authClient.updateUser({
+        name: form.name,
+        image: form.photo || undefined,
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: async () => {
       toast.success("Profile updated");
-      setUser(updated);
+      await refresh();
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't save profile")),
   });
 
   const changePwd = useMutation({
-    mutationFn: () => AuthAPI.changePassword(pwd),
+    mutationFn: async () => {
+      const { error } = await authClient.changePassword({
+        currentPassword: pwd.currentPassword,
+        newPassword: pwd.newPassword,
+      });
+      if (error) throw new Error(error.message);
+    },
     onSuccess: () => {
       toast.success("Password updated");
       setPwd({ currentPassword: "", newPassword: "" });
@@ -423,7 +436,7 @@ function ProfileTab() {
           </div>
           <div>
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1.5" />
+            <Input id="email" type="email" value={form.email} readOnly disabled className="mt-1.5" />
           </div>
         </div>
 
@@ -470,10 +483,9 @@ function ProfileTab() {
         <h3 className="font-serif text-xl">Account role</h3>
         <p className="mt-2 text-sm text-muted-foreground">
           You&apos;re currently a <strong className="capitalize text-foreground">{user?.role ?? "buyer"}</strong>.
-          Want to sell your own products?
         </p>
         <p className="mt-2 text-xs text-muted-foreground">
-          Ping your admin (or hit <code className="rounded bg-background px-1.5 py-0.5">PATCH /auth/me</code> with <code>role: &quot;seller&quot;</code>) to upgrade.
+          Want to sell your own products? An admin can promote you to seller in the admin panel.
         </p>
       </div>
     </div>

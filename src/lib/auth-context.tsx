@@ -2,11 +2,8 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { authClient } from "./auth-client";
-import { exchangeApiToken, logoutApiToken } from "./api";
 
 const AuthContext = createContext<AuthContextValue>(null as unknown as AuthContextValue);
-
-const RENEW_INTERVAL_MS = 50 * 60 * 1000; // re-exchange before the 1h JWT expires
 
 interface AuthContextValue {
   user: User | null;
@@ -59,17 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [refresh]);
 
-  // Exchange the better-auth session for the API JWT cookie whenever a user
-  // is signed in, and renew it periodically so the cookie never expires.
-  useEffect(() => {
-    if (!user) return;
-    void exchangeApiToken();
-    const timer = window.setInterval(() => void exchangeApiToken(), RENEW_INTERVAL_MS);
-    return () => window.clearInterval(timer);
-  }, [user]);
-
   const logout = useCallback(async () => {
-    await logoutApiToken();
     await authClient.signOut();
     setUser(null);
   }, []);

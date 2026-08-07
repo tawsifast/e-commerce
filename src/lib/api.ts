@@ -10,25 +10,6 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-// Exchange the better-auth session for the API JWT cookie issued by the
-// Express server. The cookie is HttpOnly and auto-sent on every request.
-export async function exchangeApiToken(): Promise<boolean> {
-  try {
-    const res = await fetch(`${API_BASE_URL}/auth/token`, { method: "POST", credentials: "include" });
-    return res.ok;
-  } catch {
-    return false;
-  }
-}
-
-export async function logoutApiToken(): Promise<void> {
-  try {
-    await fetch(`${API_BASE_URL}/auth/logout`, { method: "POST", credentials: "include" });
-  } catch {
-    // best effort — token expires on its own
-  }
-}
-
 export function getApiErrorMessage(err: unknown, fallback = "Something went wrong") {
   if (err instanceof AxiosError) {
     const data = err.response?.data;
@@ -42,28 +23,6 @@ export function getApiErrorMessage(err: unknown, fallback = "Something went wron
 // API endpoint helpers — expected REST contract for your
 // Express + Mongo backend. All requests go through NEXT_PUBLIC_API_BASE_URL.
 // ============================================================
-
-export interface RegisterPayload {
-  name: string;
-  email: string;
-  password: string;
-  photo?: string;
-}
-
-export interface LoginPayload {
-  email: string;
-  password: string;
-}
-
-export interface ChangePasswordPayload {
-  currentPassword: string;
-  newPassword: string;
-}
-
-export interface AuthResponse {
-  token: string;
-  user: User;
-}
 
 export interface ReviewItem extends Review {
   user: User;
@@ -98,22 +57,6 @@ export interface ProductPayload {
   stock: number;
   images: string[];
 }
-
-const restAuth = {
-  register: (payload: RegisterPayload) =>
-    api.post<AuthResponse>("/auth/register", payload).then((r) => r.data),
-  login: (payload: LoginPayload) =>
-    api.post<AuthResponse>("/auth/login", payload).then((r) => r.data),
-  googleLogin: (idToken: string) =>
-    api.post<AuthResponse>("/auth/google", { idToken }).then((r) => r.data),
-  me: () => api.get<{ user: User }>("/auth/me").then((r) => r.data.user),
-  updateProfile: (payload: Partial<RegisterPayload>) =>
-    api.patch<{ user: User }>("/auth/me", payload).then((r) => r.data.user),
-  changePassword: (payload: ChangePasswordPayload) =>
-    api.patch("/auth/password", payload).then((r) => r.data),
-};
-
-export const AuthAPI = restAuth;
 
 const restProducts = {
   list: (q: Record<string, unknown> = {}) =>
