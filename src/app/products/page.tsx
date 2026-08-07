@@ -26,6 +26,8 @@ const searchSchema = z.object({
 type SearchParams = z.infer<typeof searchSchema>;
 type SearchPatch = Partial<SearchParams>;
 
+const ALL_CATEGORIES = "__all__";
+
 function ProductsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -72,6 +74,16 @@ function ProductsPage() {
   };
 
   const active = query.data ?? { items: [], total: 0, page: 1, pages: 1 };
+
+  const pageNumbers = (() => {
+    const total = active.pages;
+    const cur = active.page;
+    const start = Math.max(1, cur - 2);
+    const end = Math.min(total, start + 4);
+    const out: number[] = [];
+    for (let i = start; i <= end; i++) out.push(i);
+    return out;
+  })();
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -125,7 +137,7 @@ function ProductsPage() {
               value={isActive ? search.category : null}
               open={openGroup === g.group}
               onOpenChange={(o) => setOpenGroup(o ? g.group : null)}
-              onValueChange={(v) => { setOpenGroup(null); update({ category: v ?? undefined, page: 1 }); }}
+              onValueChange={(v) => { setOpenGroup(null); update({ category: v === ALL_CATEGORIES || v == null ? undefined : v, page: 1 }); }}
             >
               <SelectTrigger
                 className={`h-8 rounded-full px-3 text-sm font-medium transition-colors hover:bg-accent ${isActive ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:text-foreground"}`}
@@ -133,7 +145,7 @@ function ProductsPage() {
                 <SelectValue placeholder={g.group} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={null}>All {g.group}</SelectItem>
+                <SelectItem value={ALL_CATEGORIES}>All {g.group}</SelectItem>
                 {g.items.map((c) => (
                   <SelectItem key={c.name} value={c.name}>{c.name}</SelectItem>
                 ))}
@@ -218,20 +230,17 @@ function ProductsPage() {
                   >
                     Previous
                   </Button>
-                  {Array.from({ length: Math.min(active.pages, 7) }).map((_, i) => {
-                    const p = i + 1;
-                    return (
-                      <Button
-                        key={p}
-                        variant="outline"
-                        size="icon"
-                        onClick={() => update({ page: p })}
-                        className={`h-9 w-9 rounded-md ${active.page === p ? "bg-primary border-transparent text-primary-foreground" : "hover:bg-accent!"}`}
-                      >
-                        {p}
-                      </Button>
-                    );
-                  })}
+                  {pageNumbers.map((p) => (
+                    <Button
+                      key={p}
+                      variant="outline"
+                      size="icon"
+                      onClick={() => update({ page: p })}
+                      className={`h-9 w-9 rounded-md ${active.page === p ? "bg-primary border-transparent text-primary-foreground" : "hover:bg-accent!"}`}
+                    >
+                      {p}
+                    </Button>
+                  ))}
                   <Button
                     variant="outline"
                     size="sm"

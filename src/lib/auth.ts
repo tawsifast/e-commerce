@@ -23,4 +23,22 @@ export const auth = betterAuth({
       },
     },
   },
+  databaseHooks: {
+    user: {
+      create: {
+        before: async (user) => {
+          if (typeof user.role === "string") {
+            user.role = user.role === "seller" ? "seller" : "buyer";
+          }
+        },
+      },
+      update: {
+        before: async (user) => {
+          if (typeof user.role === "string") {
+            user.role = user.role === "seller" ? "seller" : "buyer";
+          }
+        },
+      },
+    },
+  },
 });

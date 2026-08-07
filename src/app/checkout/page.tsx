@@ -57,15 +57,14 @@ export default function CheckoutPage() {
         address: { line1: form.line1, city: form.city, state: form.state, zip: form.zip, country: form.country },
         contact: form.contact,
         notes: form.notes || undefined,
-      });
+      }) as { orderId: string; items: { title: string; image?: string; price: number; quantity: number }[] };
 
+      // Build the Stripe session from the server-computed prices, not local
+      // cart state, so the charged amount always matches the stored order.
       const sessionRes = await fetch("/api/checkout_sessions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId: res.orderId,
-          items: items.map((i) => ({ title: i.title, image: i.image, price: i.price, quantity: i.quantity })),
-        }),
+        body: JSON.stringify({ orderId: res.orderId, items: res.items }),
       });
       const session = await sessionRes.json().catch(() => ({}));
       if (!sessionRes.ok || !session.url) {

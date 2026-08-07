@@ -13,8 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-type SignUpEmailBody = Parameters<typeof authClient.signUp.email>[0] & { role?: string };
-
 export default function RegisterPage() {
   const { refresh } = useAuth();
   const router = useRouter();
@@ -34,9 +32,12 @@ export default function RegisterPage() {
         email: form.email,
         password: form.password,
         image: form.photo || undefined,
-        role: form.role,
-      } as SignUpEmailBody);
+      });
       if (error) throw new Error(error.message);
+      if (form.role === "seller") {
+        const upd = await authClient.updateUser({ role: "seller" });
+        if (upd.error) throw new Error(upd.error.message);
+      }
       await refresh();
       toast.success("Account created — welcome");
       router.push("/");
@@ -81,10 +82,9 @@ export default function RegisterPage() {
                 <SelectContent>
                   <SelectItem value="buyer">Buyer</SelectItem>
                   <SelectItem value="seller">Seller</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="mt-1 text-xs text-muted-foreground">Dev preview — anyone can pick any role.</p>
+              <p className="mt-1 text-xs text-muted-foreground">Sellers can list products; admins are assigned by the team.</p>
             </div>
             <Button type="submit" disabled={busy} className="h-11 w-full bg-gradient-hero text-primary-foreground hover:opacity-90">
               {busy ? "Creating account…" : "Create account"}
