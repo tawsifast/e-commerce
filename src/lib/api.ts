@@ -1,20 +1,54 @@
-import axios, { AxiosError } from "axios";
 import type { Order, Product, Review, User } from "./types";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
 
-export const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: { "Content-Type": "application/json" },
-  withCredentials: true,
-});
+async function parseJson<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  return (text ? JSON.parse(text) : null) as T;
+}
+
+async function request<T>(
+  path: string,
+  options: { method?: string; body?: unknown; params?: Record<string, unknown> } = {}
+): Promise<T> {
+  const { method = "GET", body, params } = options;
+
+  const url = new URL(`${API_BASE_URL}${path}`);
+  if (params) {
+    for (const [k, v] of Object.entries(params)) {
+      if (v === undefined || v === null || v === "") continue;
+      url.searchParams.set(k, String(v));
+    }
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch {
+    throw new Error("Network error — check the API server");
+  }
+
+  if (!res.ok) {
+    const data: unknown = await parseJson(res).catch(() => null);
+    const message =
+      data && typeof data === "object" && "message" in data
+        ? String((data as { message: unknown }).message)
+        : data && typeof data === "object" && "error" in data
+          ? String((data as { error: unknown }).error)
+          : `Request failed (${res.status})`;
+    throw new Error(message);
+  }
+
+  return parseJson<T>(res);
+}
 
 export function getApiErrorMessage(err: unknown, fallback = "Something went wrong") {
-  if (err instanceof AxiosError) {
-    const data = err.response?.data;
-    return data?.message ?? data?.error ?? err.message ?? fallback;
-  }
   if (err instanceof Error) return err.message;
   return fallback;
 }
@@ -60,49 +94,49 @@ export interface ProductPayload {
 
 const restProducts = {
   list: (q: Record<string, unknown> = {}) =>
-    api.get<ProductListResponse>("/products", { params: q }).then((r) => r.data),
+    request<ProductListResponse>("/products", { params: q }),
   featured: () =>
-    api.get<{ items: Product[] }>("/products/featured").then((r) => r.data.items),
+    request<{ items: Product[] }>("/products/featured").then((r) => r.items),
   bestSellers: () =>
-    api.get<{ items: Product[] }>("/products/best-sellers").then((r) => r.data.items),
+    request<{ items: Product[] }>("/products/best-sellers").then((r) => r.items),
   categories: () =>
-    api.get<{ items: CategorySummary[] }>("/products/categories").then((r) => r.data.items),
+    request<{ items: CategorySummary[] }>("/products/categories").then((r) => r.items),
   get: (id: string) =>
-    api.get<{ product: Product }>(`/products/${id}`).then((r) => r.data.product),
+    request<{ product: Product }>(`/products/${id}`).then((r) => r.product),
   reviews: (id: string) =>
-    api.get<{ items: ReviewItem[] }>(`/products/${id}/reviews`).then((r) => r.data.items),
+    request<{ items: ReviewItem[] }>(`/products/${id}/reviews`).then((r) => r.items),
   addReview: (id: string, payload: { rating: number; comment: string }) =>
-    api.post<{ review: Review }>(`/products/${id}/reviews`, payload).then((r) => r.data.review),
+    request<{ review: Review }>(`/products/${id}/reviews`, { method: "POST", body: payload }).then((r) => r.review),
 };
 
 export const ProductsAPI = restProducts;
 
 const restWishlist = {
-  list: () => api.get("/wishlist").then((r) => r.data.items),
+  list: () => request<{ items: Product[] }>("/wishlist").then((r) => r.items),
   add: (productId: string) =>
-    api.post("/wishlist", { productId }).then((r) => r.data),
+    request<unknown>("/wishlist", { method: "POST", body: { productId } }),
   remove: (productId: string) =>
-    api.delete(`/wishlist/${productId}`).then((r) => r.data),
+    request<unknown>(`/wishlist/${productId}`, { method: "DELETE" }),
 };
 
 export const WishlistAPI = restWishlist;
 
 const restOrders = {
   create: (payload: unknown) =>
-    api.post("/orders/checkout", payload).then((r) => r.data),
+    request("/orders/checkout", { method: "POST", body: payload }),
   confirm: (orderId: string, sessionId: string) =>
-    api.post<{ order: Order }>(`/orders/${orderId}/confirm`, { sessionId }).then((r) => r.data.order),
+    request<{ order: Order }>(`/orders/${orderId}/confirm`, { method: "POST", body: { sessionId } }).then((r) => r.order),
   myOrders: (page = 1, limit = 10) =>
-    api.get("/orders/my", { params: { page, limit } }).then((r) => r.data),
+    request(`/orders/my`, { params: { page, limit } }),
   cancel: (orderId: string) =>
-    api.post<{ order: Order }>(`/orders/${orderId}/cancel`).then((r) => r.data.order),
+    request<{ order: Order }>(`/orders/${orderId}/cancel`, { method: "POST" }).then((r) => r.order),
 };
 
 export const OrdersAPI = restOrders;
 
 const restReviews = {
   latest: () =>
-    api.get<{ items: HomeReview[] }>("/reviews/latest").then((r) => r.data.items),
+    request<{ items: HomeReview[] }>("/reviews/latest").then((r) => r.items),
 };
 
 export const ReviewsAPI = restReviews;
@@ -111,23 +145,23 @@ export const ReviewsAPI = restReviews;
 // Seller
 // ============================================================
 const restSeller = {
-  overview: () => api.get("/seller/overview").then((r) => r.data),
+  overview: () => request<unknown>("/seller/overview"),
   analytics: (range = "30d") =>
-    api.get("/seller/analytics", { params: { range } }).then((r) => r.data),
+    request<unknown>("/seller/analytics", { params: { range } }),
   products: (q: Record<string, unknown> = {}) =>
-    api.get("/seller/products", { params: q }).then((r) => r.data),
+    request<unknown>("/seller/products", { params: q }),
   createProduct: (payload: ProductPayload) =>
-    api.post("/seller/products", payload).then((r) => r.data.product),
+    request<{ product: unknown }>("/seller/products", { method: "POST", body: payload }).then((r) => r.product),
   updateProduct: (id: string, payload: ProductPayload) =>
-    api.patch(`/seller/products/${id}`, payload).then((r) => r.data.product),
+    request<{ product: unknown }>(`/seller/products/${id}`, { method: "PATCH", body: payload }).then((r) => r.product),
   deleteProduct: (id: string) =>
-    api.delete(`/seller/products/${id}`).then((r) => r.data),
+    request<unknown>(`/seller/products/${id}`, { method: "DELETE" }),
   orders: (page = 1, limit = 10) =>
-    api.get("/seller/orders", { params: { page, limit } }).then((r) => r.data),
+    request<unknown>("/seller/orders", { params: { page, limit } }),
   updateOrderStatus: (orderId: string, status: string) =>
-    api.patch(`/seller/orders/${orderId}/status`, { status }).then((r) => r.data.order),
+    request<{ order: unknown }>(`/seller/orders/${orderId}/status`, { method: "PATCH", body: { status } }).then((r) => r.order),
   requestSellerRole: () =>
-    api.post("/seller/apply").then((r) => r.data),
+    request<unknown>("/seller/apply", { method: "POST" }),
 };
 
 export const SellerAPI = restSeller;
@@ -136,25 +170,25 @@ export const SellerAPI = restSeller;
 // Admin
 // ============================================================
 const restAdmin = {
-  overview: () => api.get("/admin/overview").then((r) => r.data),
+  overview: () => request<unknown>("/admin/overview"),
   users: (q: Record<string, unknown> = {}) =>
-    api.get("/admin/users", { params: q }).then((r) => r.data),
+    request<unknown>("/admin/users", { params: q }),
   updateUserRole: (id: string, role: string) =>
-    api.patch(`/admin/users/${id}/role`, { role }).then((r) => r.data.user),
+    request<{ user: unknown }>(`/admin/users/${id}/role`, { method: "PATCH", body: { role } }).then((r) => r.user),
   toggleUserBlock: (id: string, blocked: boolean) =>
-    api.patch(`/admin/users/${id}/block`, { blocked }).then((r) => r.data.user),
+    request<{ user: unknown }>(`/admin/users/${id}/block`, { method: "PATCH", body: { blocked } }).then((r) => r.user),
   deleteUser: (id: string) =>
-    api.delete(`/admin/users/${id}`).then((r) => r.data),
+    request<unknown>(`/admin/users/${id}`, { method: "DELETE" }),
   products: (q: Record<string, unknown> = {}) =>
-    api.get("/admin/products", { params: q }).then((r) => r.data),
+    request<unknown>("/admin/products", { params: q }),
   toggleProductVisibility: (id: string, hidden: boolean) =>
-    api.patch(`/admin/products/${id}/visibility`, { hidden }).then((r) => r.data.product),
+    request<{ product: unknown }>(`/admin/products/${id}/visibility`, { method: "PATCH", body: { hidden } }).then((r) => r.product),
   deleteProduct: (id: string) =>
-    api.delete(`/admin/products/${id}`).then((r) => r.data),
+    request<unknown>(`/admin/products/${id}`, { method: "DELETE" }),
   orders: (q: Record<string, unknown> = {}) =>
-    api.get("/admin/orders", { params: q }).then((r) => r.data),
+    request<unknown>("/admin/orders", { params: q }),
   updateOrderStatus: (id: string, status: string) =>
-    api.patch(`/admin/orders/${id}/status`, { status }).then((r) => r.data.order),
+    request<{ order: unknown }>(`/admin/orders/${id}/status`, { method: "PATCH", body: { status } }).then((r) => r.order),
 };
 
 export const AdminAPI = restAdmin;

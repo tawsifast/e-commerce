@@ -1,11 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { CheckCircle2, Lock, Loader2 } from "lucide-react";
-import { z } from "zod";
+import { Lock, Loader2 } from "lucide-react";
 import { getApiErrorMessage, OrdersAPI } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
@@ -14,33 +12,42 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { formatPrice } from "@/lib/format";
 
-const schema = z.object({
-  line1: z.string().min(3, "Address is required"),
-  city: z.string().min(1, "City is required"),
-  state: z.string().optional(),
-  zip: z.string().min(3, "ZIP required"),
-  country: z.string().min(2, "Country required"),
-  contact: z.string().min(6, "Contact number required"),
-  notes: z.string().optional(),
-});
+interface CheckoutForm {
+  line1: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+  contact: string;
+  notes: string;
+}
+
+function validateForm(form: CheckoutForm): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (form.line1.trim().length < 3) errors.line1 = "Address is required";
+  if (!form.city.trim()) errors.city = "City is required";
+  if (form.zip.trim().length < 3) errors.zip = "ZIP required";
+  if (form.country.trim().length < 2) errors.country = "Country required";
+  if (form.contact.trim().length < 6) errors.contact = "Contact number required";
+  return errors;
+}
 
 export function CheckoutClient() {
   const { items, subtotal } = useCart();
 
-  const [form, setForm] = useState({ line1: "", city: "", state: "", zip: "", country: "United States", contact: "", notes: "" });
+  const [form, setForm] = useState<CheckoutForm>({ line1: "", city: "", state: "", zip: "", country: "United States", contact: "", notes: "" });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
 
-  const checkout = useMutation({
-    mutationFn: async () => {
-      const parsed = schema.safeParse(form);
-      if (!parsed.success) {
-        const errs: Record<string, string> = {};
-        parsed.error.issues.forEach((i) => { errs[String(i.path[0])] = i.message; });
-        setErrors(errs);
-        throw new Error("Please fix the highlighted fields");
-      }
-      setErrors({});
-
+  const checkout = async () => {
+    const errs = validateForm(form);
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
+    setErrors({});
+    setSubmitting(true);
+    try {
       const res = await OrdersAPI.create({
         items: items.map((i) => ({ product: i.productId, quantity: i.quantity })),
         address: { line1: form.line1, city: form.city, state: form.state, zip: form.zip, country: form.country },
@@ -59,13 +66,12 @@ export function CheckoutClient() {
       if (!sessionRes.ok || !session.url) {
         throw new Error(session.error ?? "Could not start payment");
       }
-      return session.url as string;
-    },
-    onSuccess: (url) => {
-      window.location.href = url;
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Checkout failed")),
-  });
+      window.location.href = session.url;
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Checkout failed"));
+      setSubmitting(false);
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -83,7 +89,7 @@ export function CheckoutClient() {
 
       <div className="mt-10 grid gap-10 lg:grid-cols-[1fr_400px]">
         <form
-          onSubmit={(e) => { e.preventDefault(); checkout.mutate(); }}
+          onSubmit={(e) => { e.preventDefault(); checkout(); }}
           className="space-y-6 rounded-xl border border-border bg-card p-6 sm:p-8"
         >
           <div>
@@ -129,11 +135,11 @@ export function CheckoutClient() {
 
           <Button
             type="submit"
-            disabled={checkout.isPending}
+            disabled={submitting}
             className="h-12 w-full bg-gradient-hero text-primary-foreground hover:opacity-90"
           >
-            {checkout.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            {checkout.isPending ? "Redirecting to payment…" : `Place order · ${formatPrice(subtotal)}`}
+            {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            {submitting ? "Redirecting to payment…" : `Place order · ${formatPrice(subtotal)}`}
           </Button>
         </form>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { Star } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -9,21 +9,25 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
 export function ReviewForm({ productId }: { productId: string }) {
-  const qc = useQueryClient();
+  const router = useRouter();
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
+  const [posting, setPosting] = useState(false);
 
-  const addReview = useMutation({
-    mutationFn: () => ProductsAPI.addReview(productId, { rating, comment }),
-    onSuccess: () => {
+  const addReview = async () => {
+    setPosting(true);
+    try {
+      await ProductsAPI.addReview(productId, { rating, comment });
       toast.success("Review posted");
       setComment("");
       setRating(5);
-      qc.invalidateQueries({ queryKey: ["reviews", productId] });
-      qc.invalidateQueries({ queryKey: ["product", productId] });
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't post review")),
-  });
+      router.refresh();
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't post review"));
+    } finally {
+      setPosting(false);
+    }
+  };
 
   return (
     <div className="rounded-xl border border-border bg-card p-5">
@@ -43,11 +47,11 @@ export function ReviewForm({ productId }: { productId: string }) {
         rows={3}
       />
       <Button
-        onClick={() => addReview.mutate()}
-        disabled={!comment.trim() || addReview.isPending}
+        onClick={() => addReview()}
+        disabled={!comment.trim() || posting}
         className="mt-3 bg-gradient-hero text-primary-foreground hover:opacity-90"
       >
-        {addReview.isPending ? "Posting…" : "Post review"}
+        {posting ? "Posting…" : "Post review"}
       </Button>
     </div>
   );

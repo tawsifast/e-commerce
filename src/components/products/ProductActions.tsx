@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
 import { Heart, Minus, Plus } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
@@ -14,12 +13,19 @@ export function ProductActions({ product, user }: { product: Product; user: User
   const { addItem } = useCart();
   const router = useRouter();
   const [qty, setQty] = useState(1);
+  const [wishPending, setWishPending] = useState(false);
 
-  const addWish = useMutation({
-    mutationFn: () => WishlistAPI.add(product._id),
-    onSuccess: () => toast.success("Added to wishlist"),
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't add to wishlist")),
-  });
+  const addWish = async () => {
+    setWishPending(true);
+    try {
+      await WishlistAPI.add(product._id);
+      toast.success("Added to wishlist");
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't add to wishlist"));
+    } finally {
+      setWishPending(false);
+    }
+  };
 
   const requireAuth = (action: () => void) => {
     if (!user) {
@@ -53,7 +59,7 @@ export function ProductActions({ product, user }: { product: Product; user: User
         <Button onClick={() => requireAuth(buyNow)} disabled={product.stock === 0} variant="outline" className="flex-1 border-primary text-primary">
           Buy now
         </Button>
-        <Button onClick={() => requireAuth(() => addWish.mutate())} variant="outline" size="icon" aria-label="Wishlist">
+        <Button onClick={() => requireAuth(addWish)} variant="outline" size="icon" aria-label="Wishlist" disabled={wishPending}>
           <Heart className="h-4 w-4" />
         </Button>
       </div>

@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import {
   Area,
@@ -124,14 +123,16 @@ export function AdminDashboard({
 // -------------------- Overview --------------------
 
 function OverviewTab({ initialOverview }: { initialOverview: AdminOverview | null }) {
-  const [hydratedAt] = useState(() => Date.now());
-  const overviewQ = useQuery({
-    queryKey: ["admin", "overview"],
-    queryFn: () => AdminAPI.overview(),
-    ...(initialOverview ? { initialData: initialOverview as never, initialDataUpdatedAt: hydratedAt } : {}),
-  });
+  const [overview, setOverview] = useState<AdminOverview | null>(initialOverview);
+  const [error, setError] = useState(false);
 
-  const overview = overviewQ.data as AdminOverview | undefined;
+  useEffect(() => {
+    let cancelled = false;
+    AdminAPI.overview()
+      .then((data) => { if (!cancelled) setOverview(data as AdminOverview); })
+      .catch(() => { if (!cancelled) setError(true); });
+    return () => { cancelled = true; };
+  }, []);
 
   const stats = [
     { label: "Gross merchandise value", value: formatPrice(overview?.gmv ?? 0), icon: DollarSign },
@@ -142,7 +143,7 @@ function OverviewTab({ initialOverview }: { initialOverview: AdminOverview | nul
 
   return (
     <div className="space-y-6">
-      {overviewQ.isError && (
+      {error && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           Couldn&apos;t load stats — make sure your API is reachable at {API_BASE_URL}.
         </div>
@@ -202,57 +203,82 @@ function OverviewTab({ initialOverview }: { initialOverview: AdminOverview | nul
 // -------------------- Users --------------------
 
 function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
-  const qc = useQueryClient();
   const [page, setPage] = useState(1);
-  const [hydratedAt] = useState(() => Date.now());
+  const [data, setData] = useState<AdminUsersPage | null>(initialPage);
+  const [loading, setLoading] = useState(initialPage === null);
+  const [error, setError] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
-  const usersQ = useQuery({
-    queryKey: ["admin", "users", page],
-    queryFn: () => AdminAPI.users({ page, limit: 15 }),
-    ...(initialPage && page === 1
-      ? { initialData: initialPage as never, initialDataUpdatedAt: hydratedAt }
-      : {}),
-    placeholderData: keepPreviousData,
-  });
+  useEffect(() => {
+    if (page === 1 && initialPage) return;
+    let cancelled = false;
+    AdminAPI.users({ page, limit: 15 })
+      .then((d) => {
+        if (cancelled) return;
+        setData(d as AdminUsersPage);
+        setLoading(false);
+        setError(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLoading(false);
+        setError(true);
+      });
+    return () => { cancelled = true; };
+  }, [page, initialPage]);
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "users"] });
+  const reload = async () => {
+    const d = await AdminAPI.users({ page, limit: 15 });
+    setData(d as AdminUsersPage);
+  };
 
-  const setRole = useMutation({
-    mutationFn: ({ id, role }: { id: string; role: string }) => AdminAPI.updateUserRole(id, role),
-    onSuccess: () => {
+  const setRole = async (id: string, role: string) => {
+    setPendingId(id);
+    try {
+      await AdminAPI.updateUserRole(id, role);
       toast.success("Role updated");
-      invalidate();
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't update role")),
-  });
+      await reload();
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't update role"));
+    } finally {
+      setPendingId(null);
+    }
+  };
 
-  const toggleBlock = useMutation({
-    mutationFn: ({ id, blocked }: { id: string; blocked: boolean }) =>
-      AdminAPI.toggleUserBlock(id, blocked),
-    onSuccess: () => {
+  const toggleBlock = async (id: string, blocked: boolean) => {
+    setPendingId(id);
+    try {
+      await AdminAPI.toggleUserBlock(id, blocked);
       toast.success("User updated");
-      invalidate();
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't update user")),
-  });
+      await reload();
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't update user"));
+    } finally {
+      setPendingId(null);
+    }
+  };
 
-  const del = useMutation({
-    mutationFn: (id: string) => AdminAPI.deleteUser(id),
-    onSuccess: () => {
+  const del = async (id: string) => {
+    setPendingId(id);
+    try {
+      await AdminAPI.deleteUser(id);
       toast.success("User deleted");
-      invalidate();
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't delete user")),
-  });
+      await reload();
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't delete user"));
+    } finally {
+      setPendingId(null);
+    }
+  };
 
-  if (usersQ.isError) {
+  if (error && !data) {
     return <ApiError />;
   }
 
-  const data = usersQ.data as AdminUsersPage | undefined;
   const items: AdminUser[] = data?.items ?? [];
+  const totalPages = data?.totalPages ?? 1;
 
-  if (usersQ.isLoading && items.length === 0) {
+  if (loading && items.length === 0) {
     return <SkeletonRows rows={6} />;
   }
 
@@ -262,6 +288,11 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
 
   return (
     <div className="space-y-4">
+      {error && data && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          Couldn&apos;t refresh — showing the last loaded list.
+        </div>
+      )}
       <h2 className="font-serif text-2xl">Users</h2>
 
       <Table>
@@ -302,7 +333,7 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
               </TableCell>
               <TableCell>
                 <div className="flex items-center justify-end gap-1.5">
-                  <Select value={u.role} onValueChange={(v) => v && setRole.mutate({ id: u._id, role: v })} disabled={setRole.isPending}>
+                  <Select value={u.role} onValueChange={(v) => v && setRole(u._id, v)} disabled={pendingId !== null}>
                     <SelectTrigger className="h-8 w-28 text-xs capitalize">
                       <SelectValue />
                     </SelectTrigger>
@@ -317,7 +348,8 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
                     size="icon"
                     className="h-8 w-8 text-muted-foreground"
                     aria-label={u.blocked ? "Unblock user" : "Block user"}
-                    onClick={() => toggleBlock.mutate({ id: u._id, blocked: !u.blocked })}
+                    disabled={pendingId !== null}
+                    onClick={() => toggleBlock(u._id, !u.blocked)}
                   >
                     {u.blocked ? <ShieldCheck className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
                   </Button>
@@ -326,8 +358,9 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:bg-destructive/10! hover:text-destructive!"
                     aria-label="Delete user"
+                    disabled={pendingId !== null}
                     onClick={() => {
-                      if (confirm(`Delete user ${u.name}? This cannot be undone.`)) del.mutate(u._id);
+                      if (confirm(`Delete user ${u.name}? This cannot be undone.`)) del(u._id);
                     }}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -339,7 +372,7 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
         </TableBody>
       </Table>
 
-      {(data?.totalPages ?? 1) > 1 && <Pager page={page} setPage={setPage} totalPages={data?.totalPages ?? 1} />}
+      {totalPages > 1 && <Pager page={page} setPage={setPage} totalPages={totalPages} />}
     </div>
   );
 }
@@ -347,48 +380,69 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
 // -------------------- Products --------------------
 
 function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null }) {
-  const qc = useQueryClient();
   const [page, setPage] = useState(1);
-  const [hydratedAt] = useState(() => Date.now());
+  const [data, setData] = useState<AdminProductsPage | null>(initialPage);
+  const [loading, setLoading] = useState(initialPage === null);
+  const [error, setError] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
-  const productsQ = useQuery({
-    queryKey: ["admin", "products", page],
-    queryFn: () => AdminAPI.products({ page, limit: 15 }),
-    ...(initialPage && page === 1
-      ? { initialData: initialPage as never, initialDataUpdatedAt: hydratedAt }
-      : {}),
-    placeholderData: keepPreviousData,
-  });
+  useEffect(() => {
+    if (page === 1 && initialPage) return;
+    let cancelled = false;
+    AdminAPI.products({ page, limit: 15 })
+      .then((d) => {
+        if (cancelled) return;
+        setData(d as AdminProductsPage);
+        setLoading(false);
+        setError(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLoading(false);
+        setError(true);
+      });
+    return () => { cancelled = true; };
+  }, [page, initialPage]);
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "products"] });
+  const reload = async () => {
+    const d = await AdminAPI.products({ page, limit: 15 });
+    setData(d as AdminProductsPage);
+  };
 
-  const toggleVisibility = useMutation({
-    mutationFn: ({ id, hidden }: { id: string; hidden: boolean }) =>
-      AdminAPI.toggleProductVisibility(id, hidden),
-    onSuccess: () => {
+  const toggleVisibility = async (id: string, hidden: boolean) => {
+    setPendingId(id);
+    try {
+      await AdminAPI.toggleProductVisibility(id, hidden);
       toast.success("Product updated");
-      invalidate();
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't update product")),
-  });
+      await reload();
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't update product"));
+    } finally {
+      setPendingId(null);
+    }
+  };
 
-  const del = useMutation({
-    mutationFn: (id: string) => AdminAPI.deleteProduct(id),
-    onSuccess: () => {
+  const del = async (id: string) => {
+    setPendingId(id);
+    try {
+      await AdminAPI.deleteProduct(id);
       toast.success("Product deleted");
-      invalidate();
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't delete product")),
-  });
+      await reload();
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't delete product"));
+    } finally {
+      setPendingId(null);
+    }
+  };
 
-  if (productsQ.isError) {
+  if (error && !data) {
     return <ApiError />;
   }
 
-  const data = productsQ.data as AdminProductsPage | undefined;
   const items = data?.items ?? [];
+  const totalPages = data?.totalPages ?? 1;
 
-  if (productsQ.isLoading && items.length === 0) {
+  if (loading && items.length === 0) {
     return <SkeletonRows rows={6} />;
   }
 
@@ -398,6 +452,11 @@ function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null })
 
   return (
     <div className="space-y-4">
+      {error && data && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          Couldn&apos;t refresh — showing the last loaded list.
+        </div>
+      )}
       <h2 className="font-serif text-2xl">Products</h2>
 
       <Table>
@@ -437,7 +496,8 @@ function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null })
                     size="icon"
                     className="h-8 w-8 text-muted-foreground"
                     aria-label={p.hidden ? "Make visible" : "Hide product"}
-                    onClick={() => toggleVisibility.mutate({ id: p._id, hidden: !p.hidden })}
+                    disabled={pendingId !== null}
+                    onClick={() => toggleVisibility(p._id, !p.hidden)}
                   >
                     {p.hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
                   </Button>
@@ -446,8 +506,9 @@ function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null })
                     size="icon"
                     className="h-8 w-8 text-muted-foreground hover:bg-destructive/10! hover:text-destructive!"
                     aria-label="Delete product"
+                    disabled={pendingId !== null}
                     onClick={() => {
-                      if (confirm(`Delete "${p.title}"? This cannot be undone.`)) del.mutate(p._id);
+                      if (confirm(`Delete "${p.title}"? This cannot be undone.`)) del(p._id);
                     }}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -459,7 +520,7 @@ function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null })
         </TableBody>
       </Table>
 
-      {(data?.totalPages ?? 1) > 1 && <Pager page={page} setPage={setPage} totalPages={data?.totalPages ?? 1} />}
+      {totalPages > 1 && <Pager page={page} setPage={setPage} totalPages={totalPages} />}
     </div>
   );
 }
@@ -467,37 +528,56 @@ function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null })
 // -------------------- Orders --------------------
 
 function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
-  const qc = useQueryClient();
   const [page, setPage] = useState(1);
-  const [hydratedAt] = useState(() => Date.now());
+  const [data, setData] = useState<AdminOrdersPage | null>(initialPage);
+  const [loading, setLoading] = useState(initialPage === null);
+  const [error, setError] = useState(false);
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
-  const ordersQ = useQuery({
-    queryKey: ["admin", "orders", page],
-    queryFn: () => AdminAPI.orders({ page, limit: 15 }),
-    ...(initialPage && page === 1
-      ? { initialData: initialPage as never, initialDataUpdatedAt: hydratedAt }
-      : {}),
-    placeholderData: keepPreviousData,
-  });
+  useEffect(() => {
+    if (page === 1 && initialPage) return;
+    let cancelled = false;
+    AdminAPI.orders({ page, limit: 15 })
+      .then((d) => {
+        if (cancelled) return;
+        setData(d as AdminOrdersPage);
+        setLoading(false);
+        setError(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLoading(false);
+        setError(true);
+      });
+    return () => { cancelled = true; };
+  }, [page, initialPage]);
 
-  const setStatus = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => AdminAPI.updateOrderStatus(id, status),
-    onSuccess: () => {
+  const reload = async () => {
+    const d = await AdminAPI.orders({ page, limit: 15 });
+    setData(d as AdminOrdersPage);
+  };
+
+  const setStatus = async (id: string, status: string) => {
+    setPendingId(id);
+    try {
+      await AdminAPI.updateOrderStatus(id, status);
       toast.success("Order status updated");
-      qc.invalidateQueries({ queryKey: ["admin", "orders"] });
-      qc.invalidateQueries({ queryKey: ["admin", "overview"] });
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't update status")),
-  });
+      await reload();
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't update status"));
+    } finally {
+      setPendingId(null);
+    }
+  };
 
-  if (ordersQ.isError) {
+  if (error && !data) {
     return <ApiError />;
   }
 
-  const data = ordersQ.data as AdminOrdersPage | undefined;
   const items = data?.items ?? [];
+  const totalPages = data?.totalPages ?? 1;
 
-  if (ordersQ.isLoading && items.length === 0) {
+  if (loading && items.length === 0) {
     return <SkeletonRows rows={6} />;
   }
 
@@ -508,6 +588,12 @@ function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
   return (
     <div className="space-y-4">
       <h2 className="font-serif text-2xl">Orders</h2>
+
+      {error && data && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          Couldn&apos;t refresh — showing the last loaded list.
+        </div>
+      )}
 
       <Table>
         <TableHeader>
@@ -529,8 +615,8 @@ function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
               <TableCell>
                 <Select
                   value={o.status}
-                  onValueChange={(v) => v && setStatus.mutate({ id: o._id, status: v })}
-                  disabled={setStatus.isPending}
+                  onValueChange={(v) => v && setStatus(o._id, v)}
+                  disabled={pendingId !== null}
                 >
                   <SelectTrigger className="h-8 text-xs capitalize">
                     <SelectValue />
@@ -547,7 +633,7 @@ function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
         </TableBody>
       </Table>
 
-      {(data?.totalPages ?? 1) > 1 && <Pager page={page} setPage={setPage} totalPages={data?.totalPages ?? 1} />}
+      {totalPages > 1 && <Pager page={page} setPage={setPage} totalPages={totalPages} />}
     </div>
   );
 }

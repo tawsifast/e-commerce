@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import toast from "react-hot-toast";
 import {
   Heart,
@@ -101,27 +100,44 @@ const ORDER_STATUS_META = {
 
 function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
   const [page, setPage] = useState(1);
-  const [hydratedAt] = useState(() => Date.now());
-  const qc = useQueryClient();
-  const ordersQ = useQuery({
-    queryKey: ["myOrders", page],
-    queryFn: () => OrdersAPI.myOrders(page, 8),
-    ...(initialPage && page === 1
-      ? { initialData: initialPage as never, initialDataUpdatedAt: hydratedAt }
-      : {}),
-    placeholderData: keepPreviousData,
-  });
+  const [orders, setOrders] = useState<OrdersPage | null>(initialPage);
+  const [loading, setLoading] = useState(initialPage === null);
+  const [error, setError] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
 
-  const cancel = useMutation({
-    mutationFn: (orderId: string) => OrdersAPI.cancel(orderId),
-    onSuccess: () => {
+  useEffect(() => {
+    if (page === 1 && initialPage) return;
+    let cancelled = false;
+    OrdersAPI.myOrders(page, 8)
+      .then((data) => {
+        if (cancelled) return;
+        setOrders(data as OrdersPage);
+        setLoading(false);
+        setError(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLoading(false);
+        setError(true);
+      });
+    return () => { cancelled = true; };
+  }, [page, initialPage]);
+
+  const cancel = async (orderId: string) => {
+    setCancellingId(orderId);
+    try {
+      await OrdersAPI.cancel(orderId);
       toast.success("Order cancelled");
-      qc.invalidateQueries({ queryKey: ["myOrders"] });
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't cancel order")),
-  });
+      const data = await OrdersAPI.myOrders(page, 8);
+      setOrders(data as OrdersPage);
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't cancel order"));
+    } finally {
+      setCancellingId(null);
+    }
+  };
 
-  if (ordersQ.isLoading) {
+  if (loading && !orders) {
     return (
       <div className="space-y-3">
         {Array.from({ length: 3 }).map((_, i) => (
@@ -131,7 +147,7 @@ function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
     );
   }
 
-  if (ordersQ.isError) {
+  if (error && !orders) {
     return (
       <EmptyState
         icon={XCircle}
@@ -141,8 +157,8 @@ function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
     );
   }
 
-  const data = ordersQ.data as OrdersPage;
-  const items: OrderDoc[] = data?.items ?? [];
+  const items: OrderDoc[] = orders?.items ?? [];
+  const pages = orders?.pages ?? 1;
 
   if (items.length === 0) {
     return (
@@ -157,6 +173,7 @@ function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
 
   return (
     <div className="space-y-4">
+      {error && orders && <p className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-center text-xs text-destructive">Couldn&apos;t refresh — showing previous results.</p>}
       {items.map((order, idx) => {
         const meta = ORDER_STATUS_META[order.orderStatus as keyof typeof ORDER_STATUS_META] ?? ORDER_STATUS_META.pending;
         const StatusIcon = meta.icon;
@@ -213,8 +230,8 @@ function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
                   <Button
                     variant="outline"
                     size="sm"
-                    disabled={cancel.isPending}
-                    onClick={() => cancel.mutate(order._id)}
+                    disabled={cancellingId !== null}
+                    onClick={() => cancel(order._id)}
                   >
                     Cancel order
                   </Button>
@@ -225,15 +242,15 @@ function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
         );
       })}
 
-      {(data?.pages ?? 1) > 1 && (
+      {pages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-2">
           <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
             Previous
           </Button>
           <span className="text-sm text-muted-foreground">
-            Page {data.page} of {data.pages}
+            Page {page} of {pages}
           </span>
-          <Button size="sm" variant="outline" disabled={page >= data.pages} onClick={() => setPage((p) => p + 1)}>
+          <Button size="sm" variant="outline" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>
             Next
           </Button>
         </div>
@@ -245,35 +262,37 @@ function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
 // -------------------- Wishlist --------------------
 
 function WishlistTab({ initialItems }: { initialItems: Product[] }) {
-  const qc = useQueryClient();
   const { addItem } = useCart();
-  const [hydratedAt] = useState(() => Date.now());
-  const wishQ = useQuery({
-    queryKey: ["wishlist"],
-    queryFn: () => WishlistAPI.list(),
-    ...(initialItems ? { initialData: initialItems as never, initialDataUpdatedAt: hydratedAt } : {}),
-  });
+  const [items, setItems] = useState<Product[]>(initialItems);
+  const [error, setError] = useState(false);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
-  const remove = useMutation({
-    mutationFn: (productId: string) => WishlistAPI.remove(productId),
-    onSuccess: () => {
+  useEffect(() => {
+    let cancelled = false;
+    WishlistAPI.list()
+      .then((data) => {
+        if (cancelled) return;
+        setItems(data);
+        setError(false);
+      })
+      .catch(() => { if (!cancelled) setError(true); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const remove = async (productId: string) => {
+    setRemovingId(productId);
+    try {
+      await WishlistAPI.remove(productId);
       toast.success("Removed from wishlist");
-      qc.invalidateQueries({ queryKey: ["wishlist"] });
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't remove")),
-  });
+      setItems((prev) => prev.filter((p) => p._id !== productId));
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't remove"));
+    } finally {
+      setRemovingId(null);
+    }
+  };
 
-  if (wishQ.isLoading) {
-    return (
-      <div className="grid gap-4 sm:grid-cols-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-32 animate-pulse rounded-xl bg-muted" />
-        ))}
-      </div>
-    );
-  }
-
-  if (wishQ.isError) {
+  if (error && items.length === 0) {
     return (
       <EmptyState
         icon={XCircle}
@@ -282,8 +301,6 @@ function WishlistTab({ initialItems }: { initialItems: Product[] }) {
       />
     );
   }
-
-  const items: Product[] = wishQ.data ?? [];
 
   if (items.length === 0) {
     return (
@@ -317,7 +334,8 @@ function WishlistTab({ initialItems }: { initialItems: Product[] }) {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => remove.mutate(p._id)}
+                onClick={() => remove(p._id)}
+                disabled={removingId !== null}
                 className="text-muted-foreground hover:bg-transparent hover:text-destructive!"
                 aria-label="Remove from wishlist"
               >
@@ -349,41 +367,47 @@ function ProfileTab({ user }: { user: User }) {
   const router = useRouter();
   const [form, setForm] = useState({ name: user.name, email: user.email, photo: user.photo ?? "" });
   const [pwd, setPwd] = useState({ currentPassword: "", newPassword: "" });
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPwd, setSavingPwd] = useState(false);
 
-  const saveProfile = useMutation({
-    mutationFn: async () => {
+  const saveProfile = async () => {
+    setSavingProfile(true);
+    try {
       const { error } = await authClient.updateUser({
         name: form.name,
         image: form.photo || undefined,
       });
       if (error) throw new Error(error.message);
-    },
-    onSuccess: async () => {
       toast.success("Profile updated");
       router.refresh();
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't save profile")),
-  });
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't save profile"));
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
-  const changePwd = useMutation({
-    mutationFn: async () => {
+  const changePwd = async () => {
+    setSavingPwd(true);
+    try {
       const { error } = await authClient.changePassword({
         currentPassword: pwd.currentPassword,
         newPassword: pwd.newPassword,
       });
       if (error) throw new Error(error.message);
-    },
-    onSuccess: () => {
       toast.success("Password updated");
       setPwd({ currentPassword: "", newPassword: "" });
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't change password")),
-  });
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't change password"));
+    } finally {
+      setSavingPwd(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <form
-        onSubmit={(e) => { e.preventDefault(); saveProfile.mutate(); }}
+        onSubmit={(e) => { e.preventDefault(); saveProfile(); }}
         className="rounded-xl border border-border bg-card p-6"
       >
         <h2 className="font-serif text-2xl">Personal details</h2>
@@ -415,8 +439,8 @@ function ProfileTab({ user }: { user: User }) {
         </div>
 
         <div className="mt-6">
-          <Button type="submit" disabled={saveProfile.isPending} className="bg-gradient-hero text-primary-foreground hover:opacity-90">
-            {saveProfile.isPending ? "Saving…" : "Save changes"}
+          <Button type="submit" disabled={savingProfile} className="bg-gradient-hero text-primary-foreground hover:opacity-90">
+            {savingProfile ? "Saving…" : "Save changes"}
           </Button>
         </div>
       </form>
@@ -428,7 +452,7 @@ function ProfileTab({ user }: { user: User }) {
             toast.error("New password must be at least 6 characters");
             return;
           }
-          changePwd.mutate();
+          changePwd();
         }}
         className="rounded-xl border border-border bg-card p-6"
       >
@@ -447,8 +471,8 @@ function ProfileTab({ user }: { user: User }) {
         </div>
 
         <div className="mt-6">
-          <Button type="submit" disabled={changePwd.isPending || !pwd.currentPassword || !pwd.newPassword} variant="outline">
-            {changePwd.isPending ? "Updating…" : "Update password"}
+          <Button type="submit" disabled={savingPwd || !pwd.currentPassword || !pwd.newPassword} variant="outline">
+            {savingPwd ? "Updating…" : "Update password"}
           </Button>
         </div>
       </form>

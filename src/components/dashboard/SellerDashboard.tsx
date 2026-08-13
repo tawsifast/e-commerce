@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { useState, type ChangeEvent, type ReactElement, type ReactNode } from "react";
+import { useEffect, useState, type ChangeEvent, type ReactElement, type ReactNode } from "react";
 import toast from "react-hot-toast";
 import {
   Area,
@@ -143,24 +142,26 @@ function OverviewTab({
   initialAnalytics: SellerAnalytics | null;
 }) {
   const [range, setRange] = useState("30d");
-  const [hydratedAt] = useState(() => Date.now());
+  const [overview, setOverview] = useState<SellerOverview | null>(initialOverview);
+  const [analytics, setAnalytics] = useState<SellerAnalytics | null>(initialAnalytics);
+  const [overviewError, setOverviewError] = useState(false);
 
-  const overviewQ = useQuery({
-    queryKey: ["seller", "overview"],
-    queryFn: () => SellerAPI.overview(),
-    ...(initialOverview ? { initialData: initialOverview as never, initialDataUpdatedAt: hydratedAt } : {}),
-  });
+  useEffect(() => {
+    let cancelled = false;
+    SellerAPI.overview()
+      .then((data) => { if (!cancelled) setOverview(data as SellerOverview); })
+      .catch(() => { if (!cancelled) setOverviewError(true); });
+    return () => { cancelled = true; };
+  }, []);
 
-  const analyticsQ = useQuery({
-    queryKey: ["seller", "analytics", range],
-    queryFn: () => SellerAPI.analytics(range as "7d" | "30d" | "90d"),
-    ...(initialAnalytics && range === "30d"
-      ? { initialData: initialAnalytics as never, initialDataUpdatedAt: hydratedAt }
-      : {}),
-  });
-
-  const overview = overviewQ.data as SellerOverview | undefined;
-  const analytics = analyticsQ.data as SellerAnalytics | undefined;
+  useEffect(() => {
+    if (range === "30d" && initialAnalytics) return;
+    let cancelled = false;
+    SellerAPI.analytics(range as "7d" | "30d" | "90d")
+      .then((data) => { if (!cancelled) setAnalytics(data as SellerAnalytics); })
+      .catch(() => { if (!cancelled) setAnalytics(null); });
+    return () => { cancelled = true; };
+  }, [range, initialAnalytics]);
 
   const stats = [
     {
@@ -181,7 +182,7 @@ function OverviewTab({
 
   return (
     <div className="space-y-6">
-      {overviewQ.isError && (
+      {overviewError && (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
           Couldn&apos;t load live stats — make sure your API is reachable at {API_BASE_URL}.
         </div>
@@ -310,30 +311,57 @@ function OverviewTab({
 // -------------------- Products --------------------
 
 function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?: number })[] | null }) {
-  const qc = useQueryClient();
-  const [hydratedAt] = useState(() => Date.now());
-  const productsQ = useQuery({
-    queryKey: ["seller", "products"],
-    queryFn: () => SellerAPI.products(),
-    ...(initialProducts ? { initialData: initialProducts as never, initialDataUpdatedAt: hydratedAt } : {}),
-  });
+  const [products, setProducts] = useState<(Product & { sold?: number })[] | null>(initialProducts);
+  const [loading, setLoading] = useState(initialProducts === null);
+  const [error, setError] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const invalidate = () => {
-    qc.invalidateQueries({ queryKey: ["seller", "products"] });
-    qc.invalidateQueries({ queryKey: ["seller", "overview"] });
-    qc.invalidateQueries({ queryKey: ["seller", "analytics"] });
+  useEffect(() => {
+    let cancelled = false;
+    SellerAPI.products()
+      .then((data) => {
+        if (cancelled) return;
+        setProducts(data as (Product & { sold?: number })[]);
+        setLoading(false);
+        setError(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLoading(false);
+        setError(true);
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const refresh = async () => {
+    try {
+      const data = await SellerAPI.products();
+      setProducts(data as (Product & { sold?: number })[]);
+      setError(false);
+    } catch {
+      setError(true);
+    }
   };
 
-  const del = useMutation({
-    mutationFn: (id: string) => SellerAPI.deleteProduct(id),
-    onSuccess: () => {
+  const del = async (id: string) => {
+    setDeletingId(id);
+    try {
+      await SellerAPI.deleteProduct(id);
       toast.success("Product deleted");
-      invalidate();
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't delete product")),
-  });
+      await refresh();
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't delete product"));
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
-  if (productsQ.isError) {
+  const handleSaved = async (message: string) => {
+    toast.success(message);
+    await refresh();
+  };
+
+  if (error && !products) {
     return (
       <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
         Couldn&apos;t load products — make sure your API is reachable at {API_BASE_URL}.
@@ -341,19 +369,19 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
     );
   }
 
-  const products = productsQ.data as (Product & { sold?: number })[] | undefined;
-
   return (
     <div className="space-y-4">
+      {error && products && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          Couldn&apos;t refresh your products — showing the last loaded list.
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h2 className="font-serif text-2xl">Your products</h2>
         <ProductDialog
           mode="create"
           trigger={<Button className="bg-gradient-hero text-primary-foreground hover:opacity-90"><Plus className="mr-1.5 h-4 w-4" /> Add product</Button>}
-          onSaved={() => {
-            toast.success("Product published");
-            invalidate();
-          }}
+          onSaved={() => handleSaved("Product published")}
         />
       </div>
 
@@ -405,17 +433,15 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       }
-                      onSaved={() => {
-                        toast.success("Product updated");
-                        invalidate();
-                      }}
+                      onSaved={() => handleSaved("Product updated")}
                     />
                     <Button
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:bg-destructive/10! hover:text-destructive!"
                       aria-label="Delete product"
-                      onClick={() => del.mutate(p._id)}
+                      disabled={deletingId !== null}
+                      onClick={() => del(p._id)}
                     >
                       <EyeOff className="h-4 w-4" />
                     </Button>
@@ -425,7 +451,7 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
             ))}
           </TableBody>
         </Table>
-      ) : productsQ.isLoading ? (
+      ) : loading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-16 animate-pulse rounded-xl bg-muted" />
@@ -440,10 +466,7 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
             <ProductDialog
               mode="create"
               trigger={<Button className="bg-gradient-hero text-primary-foreground hover:opacity-90"><Plus className="mr-1.5 h-4 w-4" /> Add product</Button>}
-              onSaved={() => {
-                toast.success("Product published");
-                invalidate();
-              }}
+              onSaved={() => handleSaved("Product published")}
             />
           }
         />
@@ -478,31 +501,38 @@ function ProductDialog({
     };
   });
 
-  const save = useMutation({
-    mutationFn: async () => {
-      if (!form.title.trim() || !form.price) throw new Error("Title and price are required");
-      const payload = {
-        title: form.title.trim(),
-        description: form.description.trim(),
-        price: Number(form.price),
-        discountPrice: form.discountPrice ? Number(form.discountPrice) : undefined,
-        stock: form.stock ? Number(form.stock) : 0,
-        brand: form.brand.trim(),
-        category: form.category.trim(),
-        images: form.image.split(",").map((s) => s.trim()).filter(Boolean),
-      };
+  const [saving, setSaving] = useState(false);
+
+  const save = async () => {
+    if (!form.title.trim() || !form.price) {
+      toast.error("Title and price are required");
+      return;
+    }
+    const payload = {
+      title: form.title.trim(),
+      description: form.description.trim(),
+      price: Number(form.price),
+      discountPrice: form.discountPrice ? Number(form.discountPrice) : undefined,
+      stock: form.stock ? Number(form.stock) : 0,
+      brand: form.brand.trim(),
+      category: form.category.trim(),
+      images: form.image.split(",").map((s) => s.trim()).filter(Boolean),
+    };
+    setSaving(true);
+    try {
       if (mode === "edit" && product) {
         await SellerAPI.updateProduct(product._id, payload);
       } else {
         await SellerAPI.createProduct(payload);
       }
-    },
-    onSuccess: () => {
       setOpen(false);
       onSaved();
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't save product")),
-  });
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't save product"));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const set = (k: keyof typeof form) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm({ ...form, [k]: e.target.value });
@@ -560,8 +590,8 @@ function ProductDialog({
 
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-            <Button type="button" disabled={save.isPending} onClick={() => save.mutate()} className="bg-gradient-hero text-primary-foreground hover:opacity-90">
-              {save.isPending ? "Saving…" : mode === "create" ? "Publish product" : "Save changes"}
+            <Button type="button" disabled={saving} onClick={() => save()} className="bg-gradient-hero text-primary-foreground hover:opacity-90">
+              {saving ? "Saving…" : mode === "create" ? "Publish product" : "Save changes"}
             </Button>
           </div>
         </div>
@@ -575,30 +605,45 @@ function ProductDialog({
 const ORDER_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled"];
 
 function OrdersTab({ initialPage }: { initialPage: SellerOrdersPage | null }) {
-  const qc = useQueryClient();
   const [page, setPage] = useState(1);
-  const [hydratedAt] = useState(() => Date.now());
+  const [orders, setOrders] = useState<SellerOrdersPage | null>(initialPage);
+  const [loading, setLoading] = useState(initialPage === null);
+  const [error, setError] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const ordersQ = useQuery({
-    queryKey: ["seller", "orders", page],
-    queryFn: () => SellerAPI.orders(page, 10),
-    ...(initialPage && page === 1
-      ? { initialData: initialPage as never, initialDataUpdatedAt: hydratedAt }
-      : {}),
-    placeholderData: keepPreviousData,
-  });
+  useEffect(() => {
+    if (page === 1 && initialPage) return;
+    let cancelled = false;
+    SellerAPI.orders(page, 10)
+      .then((data) => {
+        if (cancelled) return;
+        setOrders(data as SellerOrdersPage);
+        setLoading(false);
+        setError(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setLoading(false);
+        setError(true);
+      });
+    return () => { cancelled = true; };
+  }, [page, initialPage]);
 
-  const setStatus = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) => SellerAPI.updateOrderStatus(id, status),
-    onSuccess: () => {
+  const setStatus = async (id: string, status: string) => {
+    setUpdatingId(id);
+    try {
+      await SellerAPI.updateOrderStatus(id, status);
       toast.success("Order status updated");
-      qc.invalidateQueries({ queryKey: ["seller", "orders"] });
-      qc.invalidateQueries({ queryKey: ["seller", "overview"] });
-    },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't update status")),
-  });
+      const data = await SellerAPI.orders(page, 10);
+      setOrders(data as SellerOrdersPage);
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't update status"));
+    } finally {
+      setUpdatingId(null);
+    }
+  };
 
-  if (ordersQ.isError) {
+  if (error && !orders) {
     return (
       <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
         Couldn&apos;t load orders — make sure your API is reachable at {API_BASE_URL}.
@@ -606,10 +651,10 @@ function OrdersTab({ initialPage }: { initialPage: SellerOrdersPage | null }) {
     );
   }
 
-  const data = ordersQ.data as SellerOrdersPage | undefined;
-  const items = data?.items ?? [];
+  const items = orders?.items ?? [];
+  const totalPages = orders?.totalPages ?? 1;
 
-  if (ordersQ.isLoading && items.length === 0) {
+  if (loading && items.length === 0) {
     return (
       <div className="space-y-3">
         {Array.from({ length: 4 }).map((_, i) => (
@@ -632,6 +677,11 @@ function OrdersTab({ initialPage }: { initialPage: SellerOrdersPage | null }) {
 
   return (
     <div className="space-y-4">
+      {error && orders && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          Couldn&apos;t refresh orders — showing the last loaded list.
+        </div>
+      )}
       <h2 className="font-serif text-2xl">Orders</h2>
 
       <Table>
@@ -654,8 +704,8 @@ function OrdersTab({ initialPage }: { initialPage: SellerOrdersPage | null }) {
               <TableCell>
                 <Select
                   value={o.status}
-                  onValueChange={(v) => v && setStatus.mutate({ id: o._id, status: v })}
-                  disabled={setStatus.isPending}
+                  onValueChange={(v) => v && setStatus(o._id, v)}
+                  disabled={updatingId !== null}
                 >
                   <SelectTrigger className="h-8 text-xs capitalize">
                     <SelectValue />
@@ -672,13 +722,13 @@ function OrdersTab({ initialPage }: { initialPage: SellerOrdersPage | null }) {
         </TableBody>
       </Table>
 
-      {(data?.totalPages ?? 1) > 1 && (
+      {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
             Previous
           </Button>
-          <span className="text-sm text-muted-foreground">Page {page} of {data?.totalPages}</span>
-          <Button size="sm" variant="outline" disabled={page >= (data?.totalPages ?? 1)} onClick={() => setPage((p) => p + 1)}>
+          <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+          <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
             Next
           </Button>
         </div>

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { z } from "zod";
 import { API_BASE_URL, serverAPI } from "@/lib/server-api";
 import type { ProductListResponse } from "@/lib/server-api";
 import { groupCategories } from "@/lib/categories";
@@ -14,17 +13,41 @@ export const metadata: Metadata = {
   description: "Browse every product listed on Marketa.",
 };
 
-const searchSchema = z.object({
-  search: z.string().optional(),
-  category: z.string().optional(),
-  brand: z.string().optional(),
-  minPrice: z.coerce.number().optional(),
-  maxPrice: z.coerce.number().optional(),
-  sort: z.enum(["newest", "price-asc", "price-desc", "rating"]).optional(),
-  page: z.coerce.number().int().min(1).optional().default(1),
-});
+interface SearchParams {
+  search?: string;
+  category?: string;
+  brand?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: "newest" | "price-asc" | "price-desc" | "rating";
+  page: number;
+}
 
-type SearchParams = z.infer<typeof searchSchema>;
+function parseSearch(raw: Record<string, string>): SearchParams {
+  const search: SearchParams = { page: 1 };
+
+  if (raw.search) search.search = raw.search;
+  if (raw.category) search.category = raw.category;
+  if (raw.brand) search.brand = raw.brand;
+
+  const price = (key: string): number | undefined => {
+    if (!raw[key]) return undefined;
+    const n = Number(raw[key]);
+    return Number.isFinite(n) && n >= 0 ? n : undefined;
+  };
+  search.minPrice = price("minPrice");
+  search.maxPrice = price("maxPrice");
+
+  const sort = raw.sort;
+  if (sort === "newest" || sort === "price-asc" || sort === "price-desc" || sort === "rating") {
+    search.sort = sort;
+  }
+
+  const page = Number(raw.page);
+  if (Number.isInteger(page) && page >= 1) search.page = page;
+
+  return search;
+}
 
 function hrefFor(search: SearchParams, page = search.page ?? 1) {
   const params = new URLSearchParams();
@@ -48,8 +71,7 @@ export default async function Page({
   for (const [k, v] of Object.entries(sp)) {
     if (typeof v === "string") raw[k] = v;
   }
-  const parsed = searchSchema.safeParse(raw);
-  const search: SearchParams = parsed.success ? parsed.data : { page: 1 };
+  const search = parseSearch(raw);
 
   let list: ProductListResponse = { items: [], total: 0, page: 1, pages: 1 };
   let categories: Awaited<ReturnType<typeof serverAPI.categories>> = [];
