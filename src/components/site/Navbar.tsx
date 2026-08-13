@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, ShoppingBag, User as UserIcon, X, LogOut, LayoutDashboard, Search, Info, Mail } from "lucide-react";
 import { useState } from "react";
-import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
+import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
+import type { User } from "@/lib/types";
 
 const dashboardHref = (role: string) => {
   if (role === "seller") return "/dashboard/seller";
@@ -18,11 +19,16 @@ const dashboardHref = (role: string) => {
 const isActive = (pathname: string, href: string) =>
   href === "/" ? pathname === "/" : pathname.startsWith(href);
 
-export function Navbar() {
-  const { user, logout } = useAuth();
+export function Navbar({ user }: { user: User | null }) {
   const { count, openDrawer } = useCart();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+
+  const logout = async () => {
+    await authClient.signOut();
+    router.refresh();
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-xl">

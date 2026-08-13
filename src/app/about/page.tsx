@@ -1,7 +1,4 @@
-"use client";
-
 import Link from "next/link";
-import { motion } from "framer-motion";
 import {
   Heart,
   Sparkles,
@@ -10,26 +7,15 @@ import {
   Leaf,
   ArrowRight,
 } from "lucide-react";
+import { Reveal } from "@/components/site/Reveal";
 import { Button } from "@/components/ui/button";
-
-const fadeUp = {
-  initial: { opacity: 0, y: 24 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true },
-  transition: { duration: 0.5 },
-};
 
 export default function About() {
   return (
     <div className="bg-background">
       {/* Hero */}
       <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="mx-auto max-w-3xl text-center"
-        >
+        <Reveal y={30} className="mx-auto max-w-3xl text-center">
           <span className="mb-5 inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card/70 px-4 py-1.5 text-xs font-medium uppercase tracking-widest text-muted-foreground">
             <span className="h-1.5 w-1.5 rounded-full bg-gold" /> Our story
           </span>
@@ -42,13 +28,13 @@ export default function About() {
             crafters deserved a storefront as considered as their work. So we
             built one.
           </p>
-        </motion.div>
+        </Reveal>
       </section>
 
       {/* Story */}
       <section className="bg-surface">
         <div className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8">
-          <motion.div {...fadeUp}>
+          <Reveal>
             <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
               How it started
             </span>
@@ -87,12 +73,9 @@ export default function About() {
                 </Button>
               </Link>
             </div>
-          </motion.div>
+          </Reveal>
 
-          <motion.div
-            {...fadeUp}
-            className="grid grid-cols-2 gap-4"
-          >
+          <Reveal delay={0.1} className="grid grid-cols-2 gap-4">
             <div className="flex flex-col justify-between gap-8 rounded-2xl border border-border/60 bg-card p-6 shadow-elegant">
               <span className="font-serif text-6xl text-primary">12k+</span>
               <p className="text-sm text-muted-foreground">
@@ -117,20 +100,20 @@ export default function About() {
                 Countries our sellers ship to, with tracking included.
               </p>
             </div>
-          </motion.div>
+          </Reveal>
         </div>
       </section>
 
       {/* Values */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <motion.div {...fadeUp} className="text-center">
+        <Reveal className="text-center">
           <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
             What we believe
           </span>
           <h2 className="mt-2 font-serif text-4xl sm:text-5xl">
             Four values, no exceptions
           </h2>
-        </motion.div>
+        </Reveal>
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[
             {
@@ -154,22 +137,17 @@ export default function About() {
               body: "Plastic-free packaging, carbon-neutral shipping offsets, and repairs before replacements.",
             },
           ].map((v, i) => (
-            <motion.div
-              key={v.title}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.1 }}
-              className="rounded-2xl border border-border/60 bg-card p-6 transition-all hover:-translate-y-1 hover:shadow-md"
-            >
-              <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-hero text-primary-foreground">
-                <v.icon className="h-5 w-5" />
+            <Reveal key={v.title} delay={i * 0.1}>
+              <div className="h-full rounded-2xl border border-border/60 bg-card p-6 transition-all hover:-translate-y-1 hover:shadow-md">
+                <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-hero text-primary-foreground">
+                  <v.icon className="h-5 w-5" />
+                </div>
+                <h3 className="mt-4 font-serif text-2xl">{v.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {v.body}
+                </p>
               </div>
-              <h3 className="mt-4 font-serif text-2xl">{v.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                {v.body}
-              </p>
-            </motion.div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -177,14 +155,14 @@ export default function About() {
       {/* How it works */}
       <section className="bg-primary text-primary-foreground">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <motion.div {...fadeUp}>
+          <Reveal>
             <span className="text-xs font-medium uppercase tracking-widest text-gold">
               How it works
             </span>
             <h2 className="mt-2 font-serif text-4xl sm:text-5xl">
               From studio to doorstep
             </h2>
-          </motion.div>
+          </Reveal>
           <div className="mt-10 grid gap-6 md:grid-cols-4">
             {[
               {
@@ -208,20 +186,15 @@ export default function About() {
                 body: "30-day returns and our purchase protection cover every single order, no hoops.",
               },
             ].map((s, i) => (
-              <motion.div
-                key={s.step}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
-                className="rounded-2xl border border-primary-foreground/15 bg-primary-foreground/5 p-6 backdrop-blur"
-              >
-                <span className="font-serif text-3xl text-gold">{s.step}</span>
-                <h3 className="mt-3 font-serif text-2xl">{s.title}</h3>
-                <p className="mt-2 text-sm text-primary-foreground/75">
-                  {s.body}
-                </p>
-              </motion.div>
+              <Reveal key={s.step} delay={i * 0.1}>
+                <div className="h-full rounded-2xl border border-primary-foreground/15 bg-primary-foreground/5 p-6 backdrop-blur">
+                  <span className="font-serif text-3xl text-gold">{s.step}</span>
+                  <h3 className="mt-3 font-serif text-2xl">{s.title}</h3>
+                  <p className="mt-2 text-sm text-primary-foreground/75">
+                    {s.body}
+                  </p>
+                </div>
+              </Reveal>
             ))}
           </div>
         </div>
@@ -229,31 +202,30 @@ export default function About() {
 
       {/* CTA */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <motion.div
-          {...fadeUp}
-          className="flex flex-col items-center gap-6 rounded-3xl bg-gradient-cream p-10 text-center shadow-md sm:p-14"
-        >
-          <Sparkles className="h-8 w-8 text-gold" />
-          <h2 className="font-serif text-4xl text-balance sm:text-5xl">
-            Come see what we are keeping
-          </h2>
-          <p className="max-w-md text-sm text-muted-foreground">
-            New drops land every week — hand-picked pieces from sellers we
-            would buy from ourselves.
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            <Link href="/products">
-              <Button className="rounded-full bg-gradient-hero text-primary-foreground hover:opacity-90">
-                Browse products <ArrowRight className="ml-1 h-4 w-4" />
-              </Button>
-            </Link>
-            <Link href="/contact">
-              <Button variant="outline" className="rounded-full">
-                Talk to us
-              </Button>
-            </Link>
+        <Reveal>
+          <div className="flex flex-col items-center gap-6 rounded-3xl bg-gradient-cream p-10 text-center shadow-md sm:p-14">
+            <Sparkles className="h-8 w-8 text-gold" />
+            <h2 className="font-serif text-4xl text-balance sm:text-5xl">
+              Come see what we are keeping
+            </h2>
+            <p className="max-w-md text-sm text-muted-foreground">
+              New drops land every week — hand-picked pieces from sellers we
+              would buy from ourselves.
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              <Link href="/products">
+                <Button className="rounded-full bg-gradient-hero text-primary-foreground hover:opacity-90">
+                  Browse products <ArrowRight className="ml-1 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/contact">
+                <Button variant="outline" className="rounded-full">
+                  Talk to us
+                </Button>
+              </Link>
+            </div>
           </div>
-        </motion.div>
+        </Reveal>
       </section>
     </div>
   );

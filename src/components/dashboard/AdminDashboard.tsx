@@ -1,0 +1,601 @@
+"use client";
+
+import Link from "next/link";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion } from "framer-motion";
+import { useState } from "react";
+import toast from "react-hot-toast";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import {
+  Ban,
+  BarChart3,
+  DollarSign,
+  Eye,
+  EyeOff,
+  Package,
+  ShieldCheck,
+  ShoppingBag,
+  Trash2,
+  UserCheck,
+  Users,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { API_BASE_URL, getApiErrorMessage, AdminAPI } from "@/lib/api";
+import type { AdminOverview, AdminOrdersPage, AdminProductsPage, AdminUsersPage, AdminUser } from "@/lib/server-api";
+import { Button } from "@/components/ui/button";
+import { formatDate, formatPrice } from "@/lib/format";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import type { User } from "@/lib/types";
+
+const ROLE_VARIANTS: Record<string, string> = {
+  buyer: "bg-muted text-muted-foreground",
+  seller: "bg-primary/10 text-primary",
+  admin: "bg-gold/15 text-gold-foreground",
+};
+
+const TABS = [
+  { id: "overview", label: "Overview", icon: BarChart3 },
+  { id: "users", label: "Users", icon: Users },
+  { id: "products", label: "Products", icon: Package },
+  { id: "orders", label: "Orders", icon: ShoppingBag },
+];
+
+const ORDER_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled", "refunded"];
+const ROLES = ["buyer", "seller", "admin"];
+
+export function AdminDashboard({
+  user,
+  initial,
+}: {
+  user: User;
+  initial: {
+    overview: AdminOverview | null;
+    users: AdminUsersPage | null;
+    products: AdminProductsPage | null;
+    orders: AdminOrdersPage | null;
+  };
+}) {
+  const [tab, setTab] = useState("overview");
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
+      <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+        <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Admin dashboard</span>
+        <h1 className="mt-2 font-serif text-5xl">Store control room</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Signed in as {user.name} — manage the whole market.</p>
+      </motion.div>
+
+      <div className="mt-8 grid gap-8 lg:grid-cols-[240px_1fr]">
+        <aside className="lg:sticky lg:top-24 lg:h-fit">
+          <div className="flex overflow-x-auto rounded-xl border border-border bg-card p-2 lg:flex-col lg:overflow-visible">
+            {TABS.map((t) => {
+              const Icon = t.icon;
+              const active = tab === t.id;
+              return (
+                <Button
+                  key={t.id}
+                  variant="ghost"
+                  onClick={() => setTab(t.id)}
+                  className={`h-auto shrink-0 justify-start gap-2.5 rounded-lg px-3 py-2.5 text-left lg:w-full ${
+                    active ? "bg-gradient-hero text-primary-foreground shadow-sm" : "text-foreground/70 hover:bg-accent! hover:text-foreground/70!"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="font-medium">{t.label}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <section>
+          {tab === "overview" && <OverviewTab initialOverview={initial.overview} />}
+          {tab === "users" && <UsersTab initialPage={initial.users} />}
+          {tab === "products" && <ProductsTab initialPage={initial.products} />}
+          {tab === "orders" && <OrdersTab initialPage={initial.orders} />}
+        </section>
+      </div>
+    </div>
+  );
+}
+
+// -------------------- Overview --------------------
+
+function OverviewTab({ initialOverview }: { initialOverview: AdminOverview | null }) {
+  const [hydratedAt] = useState(() => Date.now());
+  const overviewQ = useQuery({
+    queryKey: ["admin", "overview"],
+    queryFn: () => AdminAPI.overview(),
+    ...(initialOverview ? { initialData: initialOverview as never, initialDataUpdatedAt: hydratedAt } : {}),
+  });
+
+  const overview = overviewQ.data as AdminOverview | undefined;
+
+  const stats = [
+    { label: "Gross merchandise value", value: formatPrice(overview?.gmv ?? 0), icon: DollarSign },
+    { label: "Users", value: String(overview?.usersCount ?? 0), icon: Users },
+    { label: "Sellers", value: String(overview?.sellersCount ?? 0), icon: UserCheck },
+    { label: "Products live", value: String(overview?.productsCount ?? 0), icon: Package },
+  ];
+
+  return (
+    <div className="space-y-6">
+      {overviewQ.isError && (
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+          Couldn&apos;t load stats — make sure your API is reachable at {API_BASE_URL}.
+        </div>
+      )}
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map(({ label, value, icon: Icon }, i) => (
+          <motion.div
+            key={label}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: i * 0.05 }}
+            className="rounded-xl border border-border bg-card p-5"
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-xs uppercase tracking-widest text-muted-foreground">{label}</p>
+              <Icon className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <p className="mt-2 font-serif text-3xl">{value}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="rounded-xl border border-border bg-card p-5"
+      >
+        <h3 className="text-sm font-medium text-muted-foreground">Revenue over time</h3>
+        <div className="mt-4 h-72">
+          {overview?.revenueSeries?.length ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={overview.revenueSeries} margin={{ left: 0, right: 8, top: 4 }}>
+                <defs>
+                  <linearGradient id="adminRevFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.6)" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={{ stroke: "hsl(var(--border))" }} />
+                <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={56} />
+                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 13 }} />
+                <Area type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#adminRevFill)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="grid h-full place-items-center text-sm text-muted-foreground">No revenue data yet.</div>
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+// -------------------- Users --------------------
+
+function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
+  const qc = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [hydratedAt] = useState(() => Date.now());
+
+  const usersQ = useQuery({
+    queryKey: ["admin", "users", page],
+    queryFn: () => AdminAPI.users({ page, limit: 15 }),
+    ...(initialPage && page === 1
+      ? { initialData: initialPage as never, initialDataUpdatedAt: hydratedAt }
+      : {}),
+    placeholderData: keepPreviousData,
+  });
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "users"] });
+
+  const setRole = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: string }) => AdminAPI.updateUserRole(id, role),
+    onSuccess: () => {
+      toast.success("Role updated");
+      invalidate();
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't update role")),
+  });
+
+  const toggleBlock = useMutation({
+    mutationFn: ({ id, blocked }: { id: string; blocked: boolean }) =>
+      AdminAPI.toggleUserBlock(id, blocked),
+    onSuccess: () => {
+      toast.success("User updated");
+      invalidate();
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't update user")),
+  });
+
+  const del = useMutation({
+    mutationFn: (id: string) => AdminAPI.deleteUser(id),
+    onSuccess: () => {
+      toast.success("User deleted");
+      invalidate();
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't delete user")),
+  });
+
+  if (usersQ.isError) {
+    return <ApiError />;
+  }
+
+  const data = usersQ.data as AdminUsersPage | undefined;
+  const items: AdminUser[] = data?.items ?? [];
+
+  if (usersQ.isLoading && items.length === 0) {
+    return <SkeletonRows rows={6} />;
+  }
+
+  if (items.length === 0) {
+    return <EmptyState icon={Users} title="No users found" body="When people sign up they'll appear here." />;
+  }
+
+  return (
+    <div className="space-y-4">
+      <h2 className="font-serif text-2xl">Users</h2>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>User</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Joined</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="w-40 text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((u) => (
+            <TableRow key={u._id}>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-muted text-sm font-medium">
+                    {u.photo ? <img src={u.photo} alt="" className="h-full w-full rounded-full object-cover" /> : u.name?.[0]?.toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">{u.name}</p>
+                    <p className="text-xs text-muted-foreground">{u.email}</p>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize ${ROLE_VARIANTS[u.role] ?? "bg-muted text-muted-foreground"}`}>
+                  {u.role}
+                </span>
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">{u.createdAt ? formatDate(u.createdAt) : "—"}</TableCell>
+              <TableCell>
+                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${u.blocked ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"}`}>
+                  {u.blocked ? <Ban className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
+                  {u.blocked ? "Blocked" : "Active"}
+                </span>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center justify-end gap-1.5">
+                  <Select value={u.role} onValueChange={(v) => v && setRole.mutate({ id: u._id, role: v })} disabled={setRole.isPending}>
+                    <SelectTrigger className="h-8 w-28 text-xs capitalize">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLES.map((r) => (
+                        <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground"
+                    aria-label={u.blocked ? "Unblock user" : "Block user"}
+                    onClick={() => toggleBlock.mutate({ id: u._id, blocked: !u.blocked })}
+                  >
+                    {u.blocked ? <ShieldCheck className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:bg-destructive/10! hover:text-destructive!"
+                    aria-label="Delete user"
+                    onClick={() => {
+                      if (confirm(`Delete user ${u.name}? This cannot be undone.`)) del.mutate(u._id);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      {(data?.totalPages ?? 1) > 1 && <Pager page={page} setPage={setPage} totalPages={data?.totalPages ?? 1} />}
+    </div>
+  );
+}
+
+// -------------------- Products --------------------
+
+function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null }) {
+  const qc = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [hydratedAt] = useState(() => Date.now());
+
+  const productsQ = useQuery({
+    queryKey: ["admin", "products", page],
+    queryFn: () => AdminAPI.products({ page, limit: 15 }),
+    ...(initialPage && page === 1
+      ? { initialData: initialPage as never, initialDataUpdatedAt: hydratedAt }
+      : {}),
+    placeholderData: keepPreviousData,
+  });
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin", "products"] });
+
+  const toggleVisibility = useMutation({
+    mutationFn: ({ id, hidden }: { id: string; hidden: boolean }) =>
+      AdminAPI.toggleProductVisibility(id, hidden),
+    onSuccess: () => {
+      toast.success("Product updated");
+      invalidate();
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't update product")),
+  });
+
+  const del = useMutation({
+    mutationFn: (id: string) => AdminAPI.deleteProduct(id),
+    onSuccess: () => {
+      toast.success("Product deleted");
+      invalidate();
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't delete product")),
+  });
+
+  if (productsQ.isError) {
+    return <ApiError />;
+  }
+
+  const data = productsQ.data as AdminProductsPage | undefined;
+  const items = data?.items ?? [];
+
+  if (productsQ.isLoading && items.length === 0) {
+    return <SkeletonRows rows={6} />;
+  }
+
+  if (items.length === 0) {
+    return <EmptyState icon={Package} title="No products yet" body="Products sellers list will show up here." />;
+  }
+
+  return (
+    <div className="space-y-4">
+      <h2 className="font-serif text-2xl">Products</h2>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Product</TableHead>
+            <TableHead>Seller</TableHead>
+            <TableHead>Price</TableHead>
+            <TableHead>Visibility</TableHead>
+            <TableHead className="w-28 text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((p) => (
+            <TableRow key={p._id}>
+              <TableCell>
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted">
+                    {p.images?.[0] && <img src={p.images[0]} alt="" className="h-full w-full object-cover" />}
+                  </div>
+                  <Link href={`/products/${p._id}`} className="line-clamp-1 text-sm font-medium hover:underline">
+                    {p.title}
+                  </Link>
+                </div>
+              </TableCell>
+              <TableCell className="text-sm">{p.seller?.name ?? "—"}</TableCell>
+              <TableCell className="text-sm font-medium">{formatPrice(p.price)}</TableCell>
+              <TableCell>
+                <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${p.hidden ? "bg-muted text-muted-foreground" : "bg-success/10 text-success"}`}>
+                  {p.hidden ? "Hidden" : "Live"}
+                </span>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center justify-end gap-1.5">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground"
+                    aria-label={p.hidden ? "Make visible" : "Hide product"}
+                    onClick={() => toggleVisibility.mutate({ id: p._id, hidden: !p.hidden })}
+                  >
+                    {p.hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:bg-destructive/10! hover:text-destructive!"
+                    aria-label="Delete product"
+                    onClick={() => {
+                      if (confirm(`Delete "${p.title}"? This cannot be undone.`)) del.mutate(p._id);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      {(data?.totalPages ?? 1) > 1 && <Pager page={page} setPage={setPage} totalPages={data?.totalPages ?? 1} />}
+    </div>
+  );
+}
+
+// -------------------- Orders --------------------
+
+function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
+  const qc = useQueryClient();
+  const [page, setPage] = useState(1);
+  const [hydratedAt] = useState(() => Date.now());
+
+  const ordersQ = useQuery({
+    queryKey: ["admin", "orders", page],
+    queryFn: () => AdminAPI.orders({ page, limit: 15 }),
+    ...(initialPage && page === 1
+      ? { initialData: initialPage as never, initialDataUpdatedAt: hydratedAt }
+      : {}),
+    placeholderData: keepPreviousData,
+  });
+
+  const setStatus = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => AdminAPI.updateOrderStatus(id, status),
+    onSuccess: () => {
+      toast.success("Order status updated");
+      qc.invalidateQueries({ queryKey: ["admin", "orders"] });
+      qc.invalidateQueries({ queryKey: ["admin", "overview"] });
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Couldn't update status")),
+  });
+
+  if (ordersQ.isError) {
+    return <ApiError />;
+  }
+
+  const data = ordersQ.data as AdminOrdersPage | undefined;
+  const items = data?.items ?? [];
+
+  if (ordersQ.isLoading && items.length === 0) {
+    return <SkeletonRows rows={6} />;
+  }
+
+  if (items.length === 0) {
+    return <EmptyState icon={ShoppingBag} title="No orders yet" body="Orders placed across the store will appear here." />;
+  }
+
+  return (
+    <div className="space-y-4">
+      <h2 className="font-serif text-2xl">Orders</h2>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Order</TableHead>
+            <TableHead>Buyer</TableHead>
+            <TableHead>Placed</TableHead>
+            <TableHead>Total</TableHead>
+            <TableHead className="w-44">Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {items.map((o) => (
+            <TableRow key={o._id}>
+              <TableCell className="font-mono text-xs">#{o._id.slice(-10).toUpperCase()}</TableCell>
+              <TableCell className="text-sm">{o.buyer?.name ?? "—"}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">{o.createdAt ? formatDate(o.createdAt) : "—"}</TableCell>
+              <TableCell className="text-sm font-medium">{formatPrice(o.total ?? 0)}</TableCell>
+              <TableCell>
+                <Select
+                  value={o.status}
+                  onValueChange={(v) => v && setStatus.mutate({ id: o._id, status: v })}
+                  disabled={setStatus.isPending}
+                >
+                  <SelectTrigger className="h-8 text-xs capitalize">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ORDER_STATUSES.map((s) => (
+                      <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      {(data?.totalPages ?? 1) > 1 && <Pager page={page} setPage={setPage} totalPages={data?.totalPages ?? 1} />}
+    </div>
+  );
+}
+
+// -------------------- Shared --------------------
+
+function Pager({ page, setPage, totalPages }: { page: number; setPage: (p: number) => void; totalPages: number }) {
+  const goPrev = () => setPage(Math.max(1, page - 1));
+  const goNext = () => setPage(Math.min(totalPages, page + 1));
+  return (
+    <div className="flex items-center justify-center gap-2">
+      <Button size="sm" variant="outline" disabled={page <= 1} onClick={goPrev}>
+        Previous
+      </Button>
+      <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
+      <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={goNext}>
+        Next
+      </Button>
+    </div>
+  );
+}
+
+function SkeletonRows({ rows }: { rows: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="h-14 animate-pulse rounded-xl bg-muted" />
+      ))}
+    </div>
+  );
+}
+
+function ApiError() {
+  return (
+    <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+      Couldn&apos;t load data — make sure your API is reachable at {API_BASE_URL}.
+    </div>
+  );
+}
+
+function EmptyState({ icon: Icon, title, body }: { icon: LucideIcon; title: string; body: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-border bg-card px-6 py-14 text-center">
+      <div className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-accent">
+        <Icon className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <h3 className="mt-4 font-serif text-2xl">{title}</h3>
+      <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">{body}</p>
+    </div>
+  );
+}

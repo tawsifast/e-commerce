@@ -1,6 +1,8 @@
+import { headers } from "next/headers";
 import { betterAuth } from "better-auth";
 import { MongoClient } from "mongodb";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
+import type { User } from "./types";
 
 const client = new MongoClient(process.env.MONGODB_URI as string);
 const db = client.db("my-shop");
@@ -42,3 +44,19 @@ export const auth = betterAuth({
     },
   },
 });
+
+export async function getSessionUser(): Promise<User | null> {
+  try {
+    const session = await auth.api.getSession({ headers: await headers() });
+    if (!session?.user) return null;
+    return {
+      _id: session.user.id,
+      name: session.user.name,
+      email: session.user.email,
+      role: ((session.user as { role?: string }).role ?? "buyer") as User["role"],
+      photo: session.user.image ?? undefined,
+    };
+  } catch {
+    return null;
+  }
+}

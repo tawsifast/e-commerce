@@ -5,6 +5,7 @@ import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
 import { CartDrawer } from "@/components/site/CartDrawer";
 import { Toaster } from "react-hot-toast";
+import { getSessionUser } from "@/lib/auth";
 
 export const metadata: Metadata = {
   title: "Marketa — A curated marketplace for makers and buyers",
@@ -22,17 +23,18 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const user = await getSessionUser();
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body className="min-h-full flex flex-col">
         <Providers>
           <div className="flex min-h-screen flex-col">
-            <Navbar />
+            <Navbar user={user} />
             <main className="flex-1">{children}</main>
             <Footer />
             <CartDrawer />

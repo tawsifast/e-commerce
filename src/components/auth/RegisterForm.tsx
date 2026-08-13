@@ -1,0 +1,90 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import toast from "react-hot-toast";
+import { getApiErrorMessage } from "@/lib/api";
+import { authClient } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+export function RegisterForm() {
+  const router = useRouter();
+  const [form, setForm] = useState({ name: "", email: "", password: "", photo: "", role: "buyer" });
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (form.password.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { error } = await authClient.signUp.email({
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        image: form.photo || undefined,
+      });
+      if (error) throw new Error(error.message);
+      if (form.role === "seller") {
+        const upd = await authClient.updateUser({ role: "seller" });
+        if (upd.error) throw new Error(upd.error.message);
+      }
+      router.refresh();
+      toast.success("Account created — welcome");
+      router.push("/");
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Couldn't create account"));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="w-full max-w-md">
+      <h1 className="font-serif text-5xl">Create account</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        Already have one? <Link href="/login" className="font-medium text-primary underline-offset-4 hover:underline">Sign in</Link>
+      </p>
+
+      <form onSubmit={submit} className="mt-8 space-y-4">
+        <div>
+          <Label htmlFor="name">Full name</Label>
+          <Input id="name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="mt-1.5 h-11" />
+        </div>
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="mt-1.5 h-11" />
+        </div>
+        <div>
+          <Label htmlFor="password">Password</Label>
+          <Input id="password" type="password" required minLength={6} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className="mt-1.5 h-11" />
+          <p className="mt-1 text-xs text-muted-foreground">At least 6 characters.</p>
+        </div>
+        <div>
+          <Label htmlFor="photo">Photo URL (optional)</Label>
+          <Input id="photo" type="url" value={form.photo} onChange={(e) => setForm({ ...form, photo: e.target.value })} placeholder="https://…" className="mt-1.5 h-11" />
+        </div>
+        <div>
+          <Label htmlFor="role">Role</Label>
+          <Select value={form.role} onValueChange={(v) => setForm({ ...form, role: v ?? "buyer" })}>
+            <SelectTrigger className="mt-1.5 h-11 w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="buyer">Buyer</SelectItem>
+              <SelectItem value="seller">Seller</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="mt-1 text-xs text-muted-foreground">Sellers can list products; admins are assigned by the team.</p>
+        </div>
+        <Button type="submit" disabled={busy} className="h-11 w-full bg-gradient-hero text-primary-foreground hover:opacity-90">
+          {busy ? "Creating account…" : "Create account"}
+        </Button>
+      </form>
+    </div>
+  );
+}
