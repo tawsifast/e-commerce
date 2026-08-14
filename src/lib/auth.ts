@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { betterAuth } from "better-auth";
 import { MongoClient } from "mongodb";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
+import { jwt } from "better-auth/plugins";
 import type { User } from "./types";
 
 const client = new MongoClient(process.env.MONGODB_URI as string);
@@ -12,7 +13,8 @@ export const auth = betterAuth({
     // Optional: if you don't provide a client, database transactions won't be enabled.
     client
   }),
-   emailAndPassword: { 
+  plugins: [jwt()],
+  emailAndPassword: { 
     enabled: true, 
   },
   user: {

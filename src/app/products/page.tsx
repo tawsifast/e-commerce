@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { API_BASE_URL, serverAPI } from "@/lib/server-api";
+import { API_BASE_URL, getCategories, getProducts } from "@/lib/server-api";
 import type { ProductListResponse } from "@/lib/server-api";
 import { groupCategories } from "@/lib/categories";
 import { ProductCard } from "@/components/site/ProductCard";
@@ -74,12 +74,12 @@ export default async function Page({
   const search = parseSearch(raw);
 
   let list: ProductListResponse = { items: [], total: 0, page: 1, pages: 1 };
-  let categories: Awaited<ReturnType<typeof serverAPI.categories>> = [];
+  let categories: Awaited<ReturnType<typeof getCategories>> = [];
   let error = false;
   try {
     const [l, c] = await Promise.all([
-      serverAPI.products({ ...search, limit: 12 }),
-      serverAPI.categories(),
+      getProducts({ ...search, limit: 12 }),
+      getCategories(),
     ]);
     list = l;
     categories = c;

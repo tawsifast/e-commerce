@@ -1,85 +1,16 @@
-import type { Order, Product, Review, User } from "./types";
+import type { Order, Product, Review } from "./types";
 
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:5000/api";
-
-async function parseJson<T>(res: Response): Promise<T> {
-  const text = await res.text();
-  return (text ? JSON.parse(text) : null) as T;
-}
-
-async function request<T>(
-  path: string,
-  options: { method?: string; body?: unknown; params?: Record<string, unknown> } = {}
-): Promise<T> {
-  const { method = "GET", body, params } = options;
-
-  const url = new URL(`${API_BASE_URL}${path}`);
-  if (params) {
-    for (const [k, v] of Object.entries(params)) {
-      if (v === undefined || v === null || v === "") continue;
-      url.searchParams.set(k, String(v));
-    }
-  }
-
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-  } catch {
-    throw new Error("Network error — check the API server");
-  }
-
-  if (!res.ok) {
-    const data: unknown = await parseJson(res).catch(() => null);
-    const message =
-      data && typeof data === "object" && "message" in data
-        ? String((data as { message: unknown }).message)
-        : data && typeof data === "object" && "error" in data
-          ? String((data as { error: unknown }).error)
-          : `Request failed (${res.status})`;
-    throw new Error(message);
-  }
-
-  return parseJson<T>(res);
-}
 
 export function getApiErrorMessage(err: unknown, fallback = "Something went wrong") {
   if (err instanceof Error) return err.message;
   return fallback;
 }
 
-// ============================================================
-// API endpoint helpers — expected REST contract for your
-// Express + Mongo backend. All requests go through NEXT_PUBLIC_API_BASE_URL.
-// ============================================================
-
-export interface ReviewItem extends Review {
-  user: User;
-}
-
-export interface HomeReview {
-  _id: string;
-  rating: number;
-  comment: string;
-  user: { _id: string; name: string };
-  createdAt: string;
-}
-
 export interface CategorySummary {
   name: string;
   count: number;
-}
-
-export interface ProductListResponse {
-  items: Product[];
-  total: number;
-  page: number;
-  pages: number;
 }
 
 export interface ProductPayload {
@@ -92,103 +23,784 @@ export interface ProductPayload {
   images: string[];
 }
 
-const restProducts = {
-  list: (q: Record<string, unknown> = {}) =>
-    request<ProductListResponse>("/products", { params: q }),
-  featured: () =>
-    request<{ items: Product[] }>("/products/featured").then((r) => r.items),
-  bestSellers: () =>
-    request<{ items: Product[] }>("/products/best-sellers").then((r) => r.items),
-  categories: () =>
-    request<{ items: CategorySummary[] }>("/products/categories").then((r) => r.items),
-  get: (id: string) =>
-    request<{ product: Product }>(`/products/${id}`).then((r) => r.product),
-  reviews: (id: string) =>
-    request<{ items: ReviewItem[] }>(`/products/${id}/reviews`).then((r) => r.items),
-  addReview: (id: string, payload: { rating: number; comment: string }) =>
-    request<{ review: Review }>(`/products/${id}/reviews`, { method: "POST", body: payload }).then((r) => r.review),
+export interface CreateOrderPayload {
+  items: { product: string; quantity: number }[];
+  address: {
+    line1: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+  };
+  contact: string;
+  notes?: string;
+}
+
+export interface CreatedOrder {
+  orderId: string;
+  items: { title: string; image?: string; price: number; quantity: number }[];
+}
+
+// ============================================================
+// Buyers
+// ============================================================
+
+export const addReview = async (productId: string, payload: { rating: number; comment: string }): Promise<Review> => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/products/${productId}/reviews`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result.review;
+  } catch (error) {
+    console.error("Failed to add review:", error);
+    throw error;
+  }
 };
 
-export const ProductsAPI = restProducts;
+export const getWishlist = async (): Promise<Product[]> => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
 
-const restWishlist = {
-  list: () => request<{ items: Product[] }>("/wishlist").then((r) => r.items),
-  add: (productId: string) =>
-    request<unknown>("/wishlist", { method: "POST", body: { productId } }),
-  remove: (productId: string) =>
-    request<unknown>(`/wishlist/${productId}`, { method: "DELETE" }),
+    const response = await fetch(`${API_BASE_URL}/wishlist`, {
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result.items;
+  } catch (error) {
+    console.error("Failed to fetch wishlist:", error);
+    throw error;
+  }
 };
 
-export const WishlistAPI = restWishlist;
+export const addToWishlist = async (productId: string) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
 
-const restOrders = {
-  create: (payload: unknown) =>
-    request("/orders/checkout", { method: "POST", body: payload }),
-  confirm: (orderId: string, sessionId: string) =>
-    request<{ order: Order }>(`/orders/${orderId}/confirm`, { method: "POST", body: { sessionId } }).then((r) => r.order),
-  myOrders: (page = 1, limit = 10) =>
-    request(`/orders/my`, { params: { page, limit } }),
-  cancel: (orderId: string) =>
-    request<{ order: Order }>(`/orders/${orderId}/cancel`, { method: "POST" }).then((r) => r.order),
+    const response = await fetch(`${API_BASE_URL}/wishlist`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify({ productId }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("Failed to add to wishlist:", error);
+    throw error;
+  }
 };
 
-export const OrdersAPI = restOrders;
+export const removeFromWishlist = async (productId: string) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
 
-const restReviews = {
-  latest: () =>
-    request<{ items: HomeReview[] }>("/reviews/latest").then((r) => r.items),
+    const response = await fetch(`${API_BASE_URL}/wishlist/${productId}`, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("Failed to remove from wishlist:", error);
+    throw error;
+  }
 };
 
-export const ReviewsAPI = restReviews;
+export const createOrder = async (payload: CreateOrderPayload) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/orders/checkout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to create order:", error);
+    throw error;
+  }
+};
+
+export const confirmOrder = async (orderId: string, sessionId: string): Promise<Order> => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/orders/${orderId}/confirm`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify({ sessionId }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result.order;
+  } catch (error) {
+    console.error("Failed to confirm order:", error);
+    throw error;
+  }
+};
+
+export const getMyOrders = async (page = 1, limit = 10) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const url = new URL(`${API_BASE_URL}/orders/my`);
+    if (page !== undefined && page !== null) url.searchParams.set("page", String(page));
+    if (limit !== undefined && limit !== null) url.searchParams.set("limit", String(limit));
+
+    const response = await fetch(url, {
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch orders:", error);
+    throw error;
+  }
+};
+
+export const cancelOrder = async (orderId: string) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/orders/${orderId}/cancel`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("Failed to cancel order:", error);
+    throw error;
+  }
+};
 
 // ============================================================
 // Seller
 // ============================================================
-const restSeller = {
-  overview: () => request<unknown>("/seller/overview"),
-  analytics: (range = "30d") =>
-    request<unknown>("/seller/analytics", { params: { range } }),
-  products: (q: Record<string, unknown> = {}) =>
-    request<unknown>("/seller/products", { params: q }),
-  createProduct: (payload: ProductPayload) =>
-    request<{ product: unknown }>("/seller/products", { method: "POST", body: payload }).then((r) => r.product),
-  updateProduct: (id: string, payload: ProductPayload) =>
-    request<{ product: unknown }>(`/seller/products/${id}`, { method: "PATCH", body: payload }).then((r) => r.product),
-  deleteProduct: (id: string) =>
-    request<unknown>(`/seller/products/${id}`, { method: "DELETE" }),
-  orders: (page = 1, limit = 10) =>
-    request<unknown>("/seller/orders", { params: { page, limit } }),
-  updateOrderStatus: (orderId: string, status: string) =>
-    request<{ order: unknown }>(`/seller/orders/${orderId}/status`, { method: "PATCH", body: { status } }).then((r) => r.order),
-  requestSellerRole: () =>
-    request<unknown>("/seller/apply", { method: "POST" }),
+
+export const getSellerOverview = async () => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/seller/overview`, {
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch seller overview:", error);
+    throw error;
+  }
 };
 
-export const SellerAPI = restSeller;
+export const getSellerAnalytics = async (range = "30d") => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const url = new URL(`${API_BASE_URL}/seller/analytics`);
+    if (range !== undefined && range !== null && range !== "") url.searchParams.set("range", range);
+
+    const response = await fetch(url, {
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch seller analytics:", error);
+    throw error;
+  }
+};
+
+export const getSellerProducts = async () => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/seller/products`, {
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result.items;
+  } catch (error) {
+    console.error("Failed to fetch seller products:", error);
+    throw error;
+  }
+};
+
+export const createProduct = async (payload: ProductPayload) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/seller/products`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("Failed to create product:", error);
+    throw error;
+  }
+};
+
+export const updateProduct = async (id: string, payload: ProductPayload) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/seller/products/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("Failed to update product:", error);
+    throw error;
+  }
+};
+
+export const deleteSellerProduct = async (id: string) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/seller/products/${id}`, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("Failed to delete product:", error);
+    throw error;
+  }
+};
+
+export const getSellerOrders = async (page = 1, limit = 10) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const url = new URL(`${API_BASE_URL}/seller/orders`);
+    if (page !== undefined && page !== null) url.searchParams.set("page", String(page));
+    if (limit !== undefined && limit !== null) url.searchParams.set("limit", String(limit));
+
+    const response = await fetch(url, {
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch seller orders:", error);
+    throw error;
+  }
+};
+
+export const updateSellerOrderStatus = async (orderId: string, status: string) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/seller/orders/${orderId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify({ status }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("Failed to update order status:", error);
+    throw error;
+  }
+};
 
 // ============================================================
 // Admin
 // ============================================================
-const restAdmin = {
-  overview: () => request<unknown>("/admin/overview"),
-  users: (q: Record<string, unknown> = {}) =>
-    request<unknown>("/admin/users", { params: q }),
-  updateUserRole: (id: string, role: string) =>
-    request<{ user: unknown }>(`/admin/users/${id}/role`, { method: "PATCH", body: { role } }).then((r) => r.user),
-  toggleUserBlock: (id: string, blocked: boolean) =>
-    request<{ user: unknown }>(`/admin/users/${id}/block`, { method: "PATCH", body: { blocked } }).then((r) => r.user),
-  deleteUser: (id: string) =>
-    request<unknown>(`/admin/users/${id}`, { method: "DELETE" }),
-  products: (q: Record<string, unknown> = {}) =>
-    request<unknown>("/admin/products", { params: q }),
-  toggleProductVisibility: (id: string, hidden: boolean) =>
-    request<{ product: unknown }>(`/admin/products/${id}/visibility`, { method: "PATCH", body: { hidden } }).then((r) => r.product),
-  deleteProduct: (id: string) =>
-    request<unknown>(`/admin/products/${id}`, { method: "DELETE" }),
-  orders: (q: Record<string, unknown> = {}) =>
-    request<unknown>("/admin/orders", { params: q }),
-  updateOrderStatus: (id: string, status: string) =>
-    request<{ order: unknown }>(`/admin/orders/${id}/status`, { method: "PATCH", body: { status } }).then((r) => r.order),
+
+export const getAdminOverview = async () => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/admin/overview`, {
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch admin overview:", error);
+    throw error;
+  }
 };
 
-export const AdminAPI = restAdmin;
+export const getAdminUsers = async (query: { page: number; limit: number }) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const url = new URL(`${API_BASE_URL}/admin/users`);
+    if (query.page !== undefined && query.page !== null) url.searchParams.set("page", String(query.page));
+    if (query.limit !== undefined && query.limit !== null) url.searchParams.set("limit", String(query.limit));
+
+    const response = await fetch(url, {
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch admin users:", error);
+    throw error;
+  }
+};
+
+export const updateUserRole = async (id: string, role: string) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}/role`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify({ role }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("Failed to update user role:", error);
+    throw error;
+  }
+};
+
+export const toggleUserBlock = async (id: string, blocked: boolean) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}/block`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify({ blocked }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("Failed to update user:", error);
+    throw error;
+  }
+};
+
+export const deleteAdminUser = async (id: string) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/admin/users/${id}`, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("Failed to delete user:", error);
+    throw error;
+  }
+};
+
+export const getAdminProducts = async (query: { page: number; limit: number }) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const url = new URL(`${API_BASE_URL}/admin/products`);
+    if (query.page !== undefined && query.page !== null) url.searchParams.set("page", String(query.page));
+    if (query.limit !== undefined && query.limit !== null) url.searchParams.set("limit", String(query.limit));
+
+    const response = await fetch(url, {
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch admin products:", error);
+    throw error;
+  }
+};
+
+export const toggleProductVisibility = async (id: string, hidden: boolean) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/admin/products/${id}/visibility`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify({ hidden }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("Failed to update product:", error);
+    throw error;
+  }
+};
+
+export const deleteAdminProduct = async (id: string) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/admin/products/${id}`, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("Failed to delete product:", error);
+    throw error;
+  }
+};
+
+export const getAdminOrders = async (query: { page: number; limit: number }) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const url = new URL(`${API_BASE_URL}/admin/orders`);
+    if (query.page !== undefined && query.page !== null) url.searchParams.set("page", String(query.page));
+    if (query.limit !== undefined && query.limit !== null) url.searchParams.set("limit", String(query.limit));
+
+    const response = await fetch(url, {
+      headers: { authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch admin orders:", error);
+    throw error;
+  }
+};
+
+export const updateAdminOrderStatus = async (id: string, status: string) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/admin/orders/${id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify({ status }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+  } catch (error) {
+    console.error("Failed to update order status:", error);
+    throw error;
+  }
+};

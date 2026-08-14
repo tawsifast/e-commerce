@@ -27,7 +27,20 @@ import {
   Users,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { API_BASE_URL, getApiErrorMessage, AdminAPI } from "@/lib/api";
+import {
+  API_BASE_URL,
+  deleteAdminProduct,
+  deleteAdminUser,
+  getAdminOrders,
+  getAdminOverview,
+  getAdminProducts,
+  getAdminUsers,
+  getApiErrorMessage,
+  toggleProductVisibility,
+  toggleUserBlock,
+  updateAdminOrderStatus,
+  updateUserRole,
+} from "@/lib/api";
 import type { AdminOverview, AdminOrdersPage, AdminProductsPage, AdminUsersPage, AdminUser } from "@/lib/server-api";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatPrice } from "@/lib/format";
@@ -128,7 +141,7 @@ function OverviewTab({ initialOverview }: { initialOverview: AdminOverview | nul
 
   useEffect(() => {
     let cancelled = false;
-    AdminAPI.overview()
+    getAdminOverview()
       .then((data) => { if (!cancelled) setOverview(data as AdminOverview); })
       .catch(() => { if (!cancelled) setError(true); });
     return () => { cancelled = true; };
@@ -212,7 +225,7 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
   useEffect(() => {
     if (page === 1 && initialPage) return;
     let cancelled = false;
-    AdminAPI.users({ page, limit: 15 })
+    getAdminUsers({ page, limit: 15 })
       .then((d) => {
         if (cancelled) return;
         setData(d as AdminUsersPage);
@@ -228,14 +241,14 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
   }, [page, initialPage]);
 
   const reload = async () => {
-    const d = await AdminAPI.users({ page, limit: 15 });
+    const d = await getAdminUsers({ page, limit: 15 });
     setData(d as AdminUsersPage);
   };
 
   const setRole = async (id: string, role: string) => {
     setPendingId(id);
     try {
-      await AdminAPI.updateUserRole(id, role);
+      await updateUserRole(id, role);
       toast.success("Role updated");
       await reload();
     } catch (e) {
@@ -248,7 +261,7 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
   const toggleBlock = async (id: string, blocked: boolean) => {
     setPendingId(id);
     try {
-      await AdminAPI.toggleUserBlock(id, blocked);
+      await toggleUserBlock(id, blocked);
       toast.success("User updated");
       await reload();
     } catch (e) {
@@ -261,7 +274,7 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
   const del = async (id: string) => {
     setPendingId(id);
     try {
-      await AdminAPI.deleteUser(id);
+      await deleteAdminUser(id);
       toast.success("User deleted");
       await reload();
     } catch (e) {
@@ -389,7 +402,7 @@ function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null })
   useEffect(() => {
     if (page === 1 && initialPage) return;
     let cancelled = false;
-    AdminAPI.products({ page, limit: 15 })
+    getAdminProducts({ page, limit: 15 })
       .then((d) => {
         if (cancelled) return;
         setData(d as AdminProductsPage);
@@ -405,14 +418,14 @@ function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null })
   }, [page, initialPage]);
 
   const reload = async () => {
-    const d = await AdminAPI.products({ page, limit: 15 });
+    const d = await getAdminProducts({ page, limit: 15 });
     setData(d as AdminProductsPage);
   };
 
   const toggleVisibility = async (id: string, hidden: boolean) => {
     setPendingId(id);
     try {
-      await AdminAPI.toggleProductVisibility(id, hidden);
+      await toggleProductVisibility(id, hidden);
       toast.success("Product updated");
       await reload();
     } catch (e) {
@@ -425,7 +438,7 @@ function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null })
   const del = async (id: string) => {
     setPendingId(id);
     try {
-      await AdminAPI.deleteProduct(id);
+      await deleteAdminProduct(id);
       toast.success("Product deleted");
       await reload();
     } catch (e) {
@@ -537,7 +550,7 @@ function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
   useEffect(() => {
     if (page === 1 && initialPage) return;
     let cancelled = false;
-    AdminAPI.orders({ page, limit: 15 })
+    getAdminOrders({ page, limit: 15 })
       .then((d) => {
         if (cancelled) return;
         setData(d as AdminOrdersPage);
@@ -553,14 +566,14 @@ function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
   }, [page, initialPage]);
 
   const reload = async () => {
-    const d = await AdminAPI.orders({ page, limit: 15 });
+    const d = await getAdminOrders({ page, limit: 15 });
     setData(d as AdminOrdersPage);
   };
 
   const setStatus = async (id: string, status: string) => {
     setPendingId(id);
     try {
-      await AdminAPI.updateOrderStatus(id, status);
+      await updateAdminOrderStatus(id, status);
       toast.success("Order status updated");
       await reload();
     } catch (e) {

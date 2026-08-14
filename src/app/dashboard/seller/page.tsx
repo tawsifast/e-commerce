@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { serverAPI } from "@/lib/server-api";
+import { getSellerAnalytics, getSellerOrders, getSellerOverview, getSellerProducts } from "@/lib/server-api";
 import { SellerDashboard } from "@/components/dashboard/SellerDashboard";
 
 export default async function SellerDashboardPage() {
@@ -9,10 +9,10 @@ export default async function SellerDashboardPage() {
   if (user.role !== "seller" && user.role !== "admin") redirect("/");
 
   const [overview, analytics, products, orders] = await Promise.all([
-    serverAPI.sellerOverview().catch(() => null),
-    serverAPI.sellerAnalytics("30d").catch(() => null),
-    serverAPI.sellerProducts().catch(() => null),
-    serverAPI.sellerOrders(1, 10).catch(() => null),
+    getSellerOverview().catch(() => null),
+    getSellerAnalytics("30d").catch(() => null),
+    getSellerProducts().catch(() => null),
+    getSellerOrders(1, 10).catch(() => null),
   ]);
 
   return (

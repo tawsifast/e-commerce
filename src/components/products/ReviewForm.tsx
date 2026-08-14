@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Star } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { getApiErrorMessage, ProductsAPI } from "@/lib/api";
+import { addReview as postReview, getApiErrorMessage } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -17,7 +17,7 @@ export function ReviewForm({ productId }: { productId: string }) {
   const addReview = async () => {
     setPosting(true);
     try {
-      await ProductsAPI.addReview(productId, { rating, comment });
+      await postReview(productId, { rating, comment });
       toast.success("Review posted");
       setComment("");
       setRating(5);

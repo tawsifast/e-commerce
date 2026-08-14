@@ -31,7 +31,18 @@ import {
   TrendingUp,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { API_BASE_URL, getApiErrorMessage, SellerAPI } from "@/lib/api";
+import {
+  API_BASE_URL,
+  createProduct,
+  deleteSellerProduct,
+  getApiErrorMessage,
+  getSellerAnalytics,
+  getSellerOrders,
+  getSellerOverview,
+  getSellerProducts,
+  updateProduct,
+  updateSellerOrderStatus,
+} from "@/lib/api";
 import type { SellerAnalytics, SellerOverview, SellerOrdersPage } from "@/lib/server-api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,7 +159,7 @@ function OverviewTab({
 
   useEffect(() => {
     let cancelled = false;
-    SellerAPI.overview()
+    getSellerOverview()
       .then((data) => { if (!cancelled) setOverview(data as SellerOverview); })
       .catch(() => { if (!cancelled) setOverviewError(true); });
     return () => { cancelled = true; };
@@ -157,7 +168,7 @@ function OverviewTab({
   useEffect(() => {
     if (range === "30d" && initialAnalytics) return;
     let cancelled = false;
-    SellerAPI.analytics(range as "7d" | "30d" | "90d")
+    getSellerAnalytics(range as "7d" | "30d" | "90d")
       .then((data) => { if (!cancelled) setAnalytics(data as SellerAnalytics); })
       .catch(() => { if (!cancelled) setAnalytics(null); });
     return () => { cancelled = true; };
@@ -318,7 +329,7 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
 
   useEffect(() => {
     let cancelled = false;
-    SellerAPI.products()
+    getSellerProducts()
       .then((data) => {
         if (cancelled) return;
         setProducts(data as (Product & { sold?: number })[]);
@@ -335,7 +346,7 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
 
   const refresh = async () => {
     try {
-      const data = await SellerAPI.products();
+      const data = await getSellerProducts();
       setProducts(data as (Product & { sold?: number })[]);
       setError(false);
     } catch {
@@ -346,7 +357,7 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
   const del = async (id: string) => {
     setDeletingId(id);
     try {
-      await SellerAPI.deleteProduct(id);
+      await deleteSellerProduct(id);
       toast.success("Product deleted");
       await refresh();
     } catch (e) {
@@ -521,9 +532,9 @@ function ProductDialog({
     setSaving(true);
     try {
       if (mode === "edit" && product) {
-        await SellerAPI.updateProduct(product._id, payload);
+        await updateProduct(product._id, payload);
       } else {
-        await SellerAPI.createProduct(payload);
+        await createProduct(payload);
       }
       setOpen(false);
       onSaved();
@@ -614,7 +625,7 @@ function OrdersTab({ initialPage }: { initialPage: SellerOrdersPage | null }) {
   useEffect(() => {
     if (page === 1 && initialPage) return;
     let cancelled = false;
-    SellerAPI.orders(page, 10)
+    getSellerOrders(page, 10)
       .then((data) => {
         if (cancelled) return;
         setOrders(data as SellerOrdersPage);
@@ -632,9 +643,9 @@ function OrdersTab({ initialPage }: { initialPage: SellerOrdersPage | null }) {
   const setStatus = async (id: string, status: string) => {
     setUpdatingId(id);
     try {
-      await SellerAPI.updateOrderStatus(id, status);
+      await updateSellerOrderStatus(id, status);
       toast.success("Order status updated");
-      const data = await SellerAPI.orders(page, 10);
+      const data = await getSellerOrders(page, 10);
       setOrders(data as SellerOrdersPage);
     } catch (e) {
       toast.error(getApiErrorMessage(e, "Couldn't update status"));

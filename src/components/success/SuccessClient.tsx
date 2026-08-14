@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { CheckCircle2, Loader2, XCircle } from "lucide-react";
-import { OrdersAPI } from "@/lib/api";
+import { confirmOrder } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
 
@@ -38,7 +38,7 @@ function SuccessInner() {
 
     (async () => {
       try {
-        await OrdersAPI.confirm(orderId, sessionId);
+        await confirmOrder(orderId, sessionId);
         clear();
         setState("ok");
       } catch {

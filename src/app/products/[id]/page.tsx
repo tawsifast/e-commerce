@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Star, Truck, ShieldCheck } from "lucide-react";
-import { serverAPI } from "@/lib/server-api";
+import { getProductById, getProductReviews } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/auth";
 import { formatDate, formatPrice, isNewProduct } from "@/lib/format";
 import { Gallery } from "@/components/products/Gallery";
@@ -16,7 +16,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { id } = await params;
   try {
-    const product = await serverAPI.product(id);
+    const product = await getProductById(id);
     return {
       title: `${product.title} — Marketa`,
       description: product.description ?? `Shop ${product.title} on Marketa.`,
@@ -31,12 +31,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const { id } = await params;
   const user = await getSessionUser();
 
-  let product: Awaited<ReturnType<typeof serverAPI.product>> | null = null;
-  let reviews: Awaited<ReturnType<typeof serverAPI.reviews>> = [];
+  let product: Awaited<ReturnType<typeof getProductById>> | null = null;
+  let reviews: Awaited<ReturnType<typeof getProductReviews>> = [];
   try {
     [product, reviews] = await Promise.all([
-      serverAPI.product(id),
-      serverAPI.reviews(id),
+      getProductById(id),
+      getProductReviews(id),
     ]);
   } catch {
     product = null;

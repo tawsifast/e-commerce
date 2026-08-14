@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Lock, Loader2 } from "lucide-react";
-import { getApiErrorMessage, OrdersAPI } from "@/lib/api";
+import { createOrder, getApiErrorMessage } from "@/lib/api";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +48,7 @@ export function CheckoutClient() {
     setErrors({});
     setSubmitting(true);
     try {
-      const res = await OrdersAPI.create({
+      const res = await createOrder({
         items: items.map((i) => ({ product: i.productId, quantity: i.quantity })),
         address: { line1: form.line1, city: form.city, state: form.state, zip: form.zip, country: form.country },
         contact: form.contact,

@@ -19,7 +19,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { API_BASE_URL, getApiErrorMessage, OrdersAPI, WishlistAPI } from "@/lib/api";
+import { API_BASE_URL, cancelOrder, getApiErrorMessage, getMyOrders, getWishlist, removeFromWishlist } from "@/lib/api";
 import type { OrdersPage, OrderDoc } from "@/lib/server-api";
 import { authClient } from "@/lib/auth-client";
 import { useCart } from "@/lib/cart-context";
@@ -108,7 +108,7 @@ function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
   useEffect(() => {
     if (page === 1 && initialPage) return;
     let cancelled = false;
-    OrdersAPI.myOrders(page, 8)
+    getMyOrders(page, 8)
       .then((data) => {
         if (cancelled) return;
         setOrders(data as OrdersPage);
@@ -126,9 +126,9 @@ function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
   const cancel = async (orderId: string) => {
     setCancellingId(orderId);
     try {
-      await OrdersAPI.cancel(orderId);
+      await cancelOrder(orderId);
       toast.success("Order cancelled");
-      const data = await OrdersAPI.myOrders(page, 8);
+      const data = await getMyOrders(page, 8);
       setOrders(data as OrdersPage);
     } catch (e) {
       toast.error(getApiErrorMessage(e, "Couldn't cancel order"));
@@ -269,7 +269,7 @@ function WishlistTab({ initialItems }: { initialItems: Product[] }) {
 
   useEffect(() => {
     let cancelled = false;
-    WishlistAPI.list()
+    getWishlist()
       .then((data) => {
         if (cancelled) return;
         setItems(data);
@@ -282,7 +282,7 @@ function WishlistTab({ initialItems }: { initialItems: Product[] }) {
   const remove = async (productId: string) => {
     setRemovingId(productId);
     try {
-      await WishlistAPI.remove(productId);
+      await removeFromWishlist(productId);
       toast.success("Removed from wishlist");
       setItems((prev) => prev.filter((p) => p._id !== productId));
     } catch (e) {

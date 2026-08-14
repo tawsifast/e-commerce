@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, ShieldCheck, Truck, RotateCcw, Star } from "lucide-react";
-import { serverAPI } from "@/lib/server-api";
+import { getBestSellingProducts, getCategories, getFeaturedProducts, getLatestReviews } from "@/lib/server-api";
 import { ProductCard } from "@/components/site/ProductCard";
 import { Reveal } from "@/components/site/Reveal";
 import { HeroSearch } from "@/components/site/HeroSearch";
@@ -11,10 +11,10 @@ import heroImage from "@/assets/hero.jpg";
 async function getHomeData() {
   try {
     const [featured, bestSellers, categories, reviews] = await Promise.all([
-      serverAPI.featured(),
-      serverAPI.bestSellers(),
-      serverAPI.categories(),
-      serverAPI.latestReviews(),
+      getFeaturedProducts(),
+      getBestSellingProducts(),
+      getCategories(),
+      getLatestReviews(),
     ]);
     return { featured, bestSellers, categories, reviews };
   } catch {

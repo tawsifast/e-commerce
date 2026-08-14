@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { Heart, Minus, Plus } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { getApiErrorMessage, WishlistAPI } from "@/lib/api";
+import { addToWishlist, getApiErrorMessage } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart-context";
 import type { Product, User } from "@/lib/types";
@@ -18,7 +18,7 @@ export function ProductActions({ product, user }: { product: Product; user: User
   const addWish = async () => {
     setWishPending(true);
     try {
-      await WishlistAPI.add(product._id);
+      await addToWishlist(product._id);
       toast.success("Added to wishlist");
     } catch (e) {
       toast.error(getApiErrorMessage(e, "Couldn't add to wishlist"));

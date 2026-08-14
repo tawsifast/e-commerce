@@ -7,6 +7,8 @@ export const API_BASE_URL =
 const SESSION_COOKIE =
   process.env.BETTER_AUTH_COOKIE ?? "better-auth.session_token";
 
+const BETTER_AUTH_URL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+
 export interface CategorySummary {
   name: string;
   count: number;
@@ -17,6 +19,17 @@ export interface ProductListResponse {
   total: number;
   page: number;
   pages: number;
+}
+
+export interface ProductQuery {
+  search?: string;
+  category?: string;
+  brand?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: string;
+  page?: number;
+  limit?: number;
 }
 
 export interface ReviewItem extends Review {
@@ -147,91 +160,665 @@ export interface AdminOrdersPage {
   totalPages: number;
 }
 
-async function serverFetch<T>(
-  path: string,
-  qs?: Record<string, string | number | undefined | null>,
-): Promise<T> {
-  const cookieStore = await cookies();
+// ============================================================
+// Public catalogue
+// ============================================================
 
-  let sessionCookie = cookieStore.get(SESSION_COOKIE);
-  if (!sessionCookie) {
-    sessionCookie = cookieStore
-      .getAll()
-      .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
-  }
+export const getProducts = async (query: ProductQuery): Promise<ProductListResponse> => {
+  try {
+    const cookieStore = await cookies();
 
-  const url = new URL(`${API_BASE_URL}${path}`);
-  if (qs) {
-    for (const [k, v] of Object.entries(qs)) {
-      if (v == null || v === "") continue;
-      url.searchParams.set(k, String(v));
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
     }
+
+    const url = new URL(`${API_BASE_URL}/products`);
+    if (query.search) url.searchParams.set("search", query.search);
+    if (query.category) url.searchParams.set("category", query.category);
+    if (query.brand) url.searchParams.set("brand", query.brand);
+    if (query.minPrice !== undefined && query.minPrice !== null) url.searchParams.set("minPrice", String(query.minPrice));
+    if (query.maxPrice !== undefined && query.maxPrice !== null) url.searchParams.set("maxPrice", String(query.maxPrice));
+    if (query.sort) url.searchParams.set("sort", query.sort);
+    if (query.page !== undefined && query.page !== null) url.searchParams.set("page", String(query.page));
+    if (query.limit !== undefined && query.limit !== null) url.searchParams.set("limit", String(query.limit));
+
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (sessionCookie) {
+      headers.set("cookie", `${sessionCookie.name}=${sessionCookie.value}`);
+    }
+
+    const response = await fetch(url, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch products:", error);
+    throw error;
   }
+};
 
-  const res = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-      ...(sessionCookie ? { cookie: `${sessionCookie.name}=${sessionCookie.value}` } : {}),
-    },
-    cache: "no-store",
-  });
+export const getFeaturedProducts = async (): Promise<Product[]> => {
+  try {
+    const cookieStore = await cookies();
 
-  if (!res.ok) {
-    const body = (await res.json().catch(() => null)) as { message?: string } | null;
-    throw new Error(body?.message ?? `API request failed (${res.status})`);
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
+
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (sessionCookie) {
+      headers.set("cookie", `${sessionCookie.name}=${sessionCookie.value}`);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/products/featured`, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result.items;
+  } catch (error) {
+    console.error("Failed to fetch featured products:", error);
+    throw error;
   }
-  return res.json() as Promise<T>;
-}
+};
 
-export const serverAPI = {
-  products: (q: Record<string, string | number | undefined> = {}) =>
-    serverFetch<ProductListResponse>("/products", q),
+export const getBestSellingProducts = async (): Promise<Product[]> => {
+  try {
+    const cookieStore = await cookies();
 
-  featured: () =>
-    serverFetch<{ items: Product[] }>("/products/featured").then((r) => r.items),
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
 
-  bestSellers: () =>
-    serverFetch<{ items: Product[] }>("/products/best-sellers").then((r) => r.items),
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (sessionCookie) {
+      headers.set("cookie", `${sessionCookie.name}=${sessionCookie.value}`);
+    }
 
-  categories: () =>
-    serverFetch<{ items: CategorySummary[] }>("/products/categories").then((r) => r.items),
+    const response = await fetch(`${API_BASE_URL}/products/best-sellers`, { headers, cache: "no-store" });
 
-  product: (id: string) =>
-    serverFetch<{ product: Product }>(`/products/${id}`).then((r) => r.product),
+    const result = await response.json();
 
-  reviews: (id: string) =>
-    serverFetch<{ items: ReviewItem[] }>(`/products/${id}/reviews`).then((r) => r.items),
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
 
-  latestReviews: () =>
-    serverFetch<{ items: HomeReview[] }>("/reviews/latest").then((r) => r.items),
+    return result.items;
+  } catch (error) {
+    console.error("Failed to fetch best selling products:", error);
+    throw error;
+  }
+};
 
-  myOrders: (page = 1, limit = 10) =>
-    serverFetch<OrdersPage>("/orders/my", { page, limit }),
+export const getCategories = async (): Promise<CategorySummary[]> => {
+  try {
+    const cookieStore = await cookies();
 
-  wishlist: () =>
-    serverFetch<{ items: Product[] }>("/wishlist").then((r) => r.items),
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
 
-  sellerOverview: () => serverFetch<SellerOverview>("/seller/overview"),
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (sessionCookie) {
+      headers.set("cookie", `${sessionCookie.name}=${sessionCookie.value}`);
+    }
 
-  sellerAnalytics: (range = "30d") =>
-    serverFetch<SellerAnalytics>("/seller/analytics", { range }),
+    const response = await fetch(`${API_BASE_URL}/products/categories`, { headers, cache: "no-store" });
 
-  sellerProducts: () =>
-    serverFetch<{ items: (Product & { sold?: number })[] }>("/seller/products").then(
-      (r) => r.items,
-    ),
+    const result = await response.json();
 
-  sellerOrders: (page = 1, limit = 10) =>
-    serverFetch<SellerOrdersPage>("/seller/orders", { page, limit }),
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
 
-  adminOverview: () => serverFetch<AdminOverview>("/admin/overview"),
+    return result.items;
+  } catch (error) {
+    console.error("Failed to fetch categories:", error);
+    throw error;
+  }
+};
 
-  adminUsers: (page = 1, limit = 15) =>
-    serverFetch<AdminUsersPage>("/admin/users", { page, limit }),
+export const getProductById = async (id: string): Promise<Product> => {
+  try {
+    const cookieStore = await cookies();
 
-  adminProducts: (page = 1, limit = 15) =>
-    serverFetch<AdminProductsPage>("/admin/products", { page, limit }),
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
 
-  adminOrders: (page = 1, limit = 15) =>
-    serverFetch<AdminOrdersPage>("/admin/orders", { page, limit }),
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (sessionCookie) {
+      headers.set("cookie", `${sessionCookie.name}=${sessionCookie.value}`);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/products/${id}`, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result.product;
+  } catch (error) {
+    console.error(`Failed to fetch product ${id}:`, error);
+    throw error;
+  }
+};
+
+export const getProductReviews = async (id: string): Promise<ReviewItem[]> => {
+  try {
+    const cookieStore = await cookies();
+
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
+
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (sessionCookie) {
+      headers.set("cookie", `${sessionCookie.name}=${sessionCookie.value}`);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/products/${id}/reviews`, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result.items;
+  } catch (error) {
+    console.error(`Failed to fetch reviews for product ${id}:`, error);
+    throw error;
+  }
+};
+
+export const getLatestReviews = async (): Promise<HomeReview[]> => {
+  try {
+    const cookieStore = await cookies();
+
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
+
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (sessionCookie) {
+      headers.set("cookie", `${sessionCookie.name}=${sessionCookie.value}`);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/reviews/latest`, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result.items;
+  } catch (error) {
+    console.error("Failed to fetch latest reviews:", error);
+    throw error;
+  }
+};
+
+// ============================================================
+// Buyer dashboard
+// ============================================================
+
+export const getMyOrders = async (page = 1, limit = 10): Promise<OrdersPage> => {
+  try {
+    const cookieStore = await cookies();
+
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
+
+    const url = new URL(`${API_BASE_URL}/orders/my`);
+    if (page !== undefined && page !== null) url.searchParams.set("page", String(page));
+    if (limit !== undefined && limit !== null) url.searchParams.set("limit", String(limit));
+
+    const tokenResponse = await fetch(`${BETTER_AUTH_URL}/api/auth/token`, {
+      headers: sessionCookie ? { cookie: `${sessionCookie.name}=${sessionCookie.value}` } : {},
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+
+    const response = await fetch(url, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch orders:", error);
+    throw error;
+  }
+};
+
+export const getWishlist = async (): Promise<Product[]> => {
+  try {
+    const cookieStore = await cookies();
+
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
+
+    const tokenResponse = await fetch(`${BETTER_AUTH_URL}/api/auth/token`, {
+      headers: sessionCookie ? { cookie: `${sessionCookie.name}=${sessionCookie.value}` } : {},
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/wishlist`, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result.items;
+  } catch (error) {
+    console.error("Failed to fetch wishlist:", error);
+    throw error;
+  }
+};
+
+// ============================================================
+// Seller dashboard
+// ============================================================
+
+export const getSellerOverview = async (): Promise<SellerOverview> => {
+  try {
+    const cookieStore = await cookies();
+
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
+
+    const tokenResponse = await fetch(`${BETTER_AUTH_URL}/api/auth/token`, {
+      headers: sessionCookie ? { cookie: `${sessionCookie.name}=${sessionCookie.value}` } : {},
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/seller/overview`, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch seller overview:", error);
+    throw error;
+  }
+};
+
+export const getSellerAnalytics = async (range = "30d"): Promise<SellerAnalytics> => {
+  try {
+    const cookieStore = await cookies();
+
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
+
+    const url = new URL(`${API_BASE_URL}/seller/analytics`);
+    if (range !== undefined && range !== null && range !== "") url.searchParams.set("range", range);
+
+    const tokenResponse = await fetch(`${BETTER_AUTH_URL}/api/auth/token`, {
+      headers: sessionCookie ? { cookie: `${sessionCookie.name}=${sessionCookie.value}` } : {},
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+
+    const response = await fetch(url, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch seller analytics:", error);
+    throw error;
+  }
+};
+
+export const getSellerProducts = async (): Promise<(Product & { sold?: number })[]> => {
+  try {
+    const cookieStore = await cookies();
+
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
+
+    const tokenResponse = await fetch(`${BETTER_AUTH_URL}/api/auth/token`, {
+      headers: sessionCookie ? { cookie: `${sessionCookie.name}=${sessionCookie.value}` } : {},
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/seller/products`, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result.items;
+  } catch (error) {
+    console.error("Failed to fetch seller products:", error);
+    throw error;
+  }
+};
+
+export const getSellerOrders = async (page = 1, limit = 10): Promise<SellerOrdersPage> => {
+  try {
+    const cookieStore = await cookies();
+
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
+
+    const url = new URL(`${API_BASE_URL}/seller/orders`);
+    if (page !== undefined && page !== null) url.searchParams.set("page", String(page));
+    if (limit !== undefined && limit !== null) url.searchParams.set("limit", String(limit));
+
+    const tokenResponse = await fetch(`${BETTER_AUTH_URL}/api/auth/token`, {
+      headers: sessionCookie ? { cookie: `${sessionCookie.name}=${sessionCookie.value}` } : {},
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+
+    const response = await fetch(url, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch seller orders:", error);
+    throw error;
+  }
+};
+
+// ============================================================
+// Admin dashboard
+// ============================================================
+
+export const getAdminOverview = async (): Promise<AdminOverview> => {
+  try {
+    const cookieStore = await cookies();
+
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
+
+    const tokenResponse = await fetch(`${BETTER_AUTH_URL}/api/auth/token`, {
+      headers: sessionCookie ? { cookie: `${sessionCookie.name}=${sessionCookie.value}` } : {},
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/admin/overview`, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch admin overview:", error);
+    throw error;
+  }
+};
+
+export const getAdminUsers = async (page = 1, limit = 15): Promise<AdminUsersPage> => {
+  try {
+    const cookieStore = await cookies();
+
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
+
+    const url = new URL(`${API_BASE_URL}/admin/users`);
+    if (page !== undefined && page !== null) url.searchParams.set("page", String(page));
+    if (limit !== undefined && limit !== null) url.searchParams.set("limit", String(limit));
+
+    const tokenResponse = await fetch(`${BETTER_AUTH_URL}/api/auth/token`, {
+      headers: sessionCookie ? { cookie: `${sessionCookie.name}=${sessionCookie.value}` } : {},
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+
+    const response = await fetch(url, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch admin users:", error);
+    throw error;
+  }
+};
+
+export const getAdminProducts = async (page = 1, limit = 15): Promise<AdminProductsPage> => {
+  try {
+    const cookieStore = await cookies();
+
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
+
+    const url = new URL(`${API_BASE_URL}/admin/products`);
+    if (page !== undefined && page !== null) url.searchParams.set("page", String(page));
+    if (limit !== undefined && limit !== null) url.searchParams.set("limit", String(limit));
+
+    const tokenResponse = await fetch(`${BETTER_AUTH_URL}/api/auth/token`, {
+      headers: sessionCookie ? { cookie: `${sessionCookie.name}=${sessionCookie.value}` } : {},
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+
+    const response = await fetch(url, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch admin products:", error);
+    throw error;
+  }
+};
+
+export const getAdminOrders = async (page = 1, limit = 15): Promise<AdminOrdersPage> => {
+  try {
+    const cookieStore = await cookies();
+
+    let sessionCookie = cookieStore.get(SESSION_COOKIE);
+    if (!sessionCookie) {
+      sessionCookie = cookieStore
+        .getAll()
+        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
+    }
+
+    const url = new URL(`${API_BASE_URL}/admin/orders`);
+    if (page !== undefined && page !== null) url.searchParams.set("page", String(page));
+    if (limit !== undefined && limit !== null) url.searchParams.set("limit", String(limit));
+
+    const tokenResponse = await fetch(`${BETTER_AUTH_URL}/api/auth/token`, {
+      headers: sessionCookie ? { cookie: `${sessionCookie.name}=${sessionCookie.value}` } : {},
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const headers = new Headers();
+    headers.set("Accept", "application/json");
+    if (token) {
+      headers.set("authorization", `Bearer ${token}`);
+    }
+
+    const response = await fetch(url, { headers, cache: "no-store" });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      throw new Error(result.message);
+    }
+
+    return result;
+  } catch (error) {
+    console.error("Failed to fetch admin orders:", error);
+    throw error;
+  }
 };

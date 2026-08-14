@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { serverAPI } from "@/lib/server-api";
+import { getMyOrders, getWishlist } from "@/lib/server-api";
 import { BuyerDashboard } from "@/components/dashboard/BuyerDashboard";
 
 export default async function BuyerDashboardPage() {
@@ -8,8 +8,8 @@ export default async function BuyerDashboardPage() {
   if (!user) redirect("/login");
 
   const [initialOrders, initialWishlist] = await Promise.all([
-    serverAPI.myOrders(1, 8).catch(() => null),
-    serverAPI.wishlist().catch(() => []),
+    getMyOrders(1, 8).catch(() => null),
+    getWishlist().catch(() => []),
   ]);
 
   return (
