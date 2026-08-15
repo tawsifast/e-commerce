@@ -365,9 +365,7 @@ function WishlistTab({ initialItems }: { initialItems: Product[] }) {
 function ProfileTab({ user }: { user: User }) {
   const router = useRouter();
   const [form, setForm] = useState({ name: user.name, email: user.email, photo: user.photo ?? "" });
-  const [pwd, setPwd] = useState({ currentPassword: "", newPassword: "" });
   const [savingProfile, setSavingProfile] = useState(false);
-  const [savingPwd, setSavingPwd] = useState(false);
 
   const saveProfile = async () => {
     setSavingProfile(true);
@@ -383,23 +381,6 @@ function ProfileTab({ user }: { user: User }) {
       toast.error(getApiErrorMessage(e, "Couldn't save profile"));
     } finally {
       setSavingProfile(false);
-    }
-  };
-
-  const changePwd = async () => {
-    setSavingPwd(true);
-    try {
-      const { error } = await authClient.changePassword({
-        currentPassword: pwd.currentPassword,
-        newPassword: pwd.newPassword,
-      });
-      if (error) throw new Error(error.message);
-      toast.success("Password updated");
-      setPwd({ currentPassword: "", newPassword: "" });
-    } catch (e) {
-      toast.error(getApiErrorMessage(e, "Couldn't change password"));
-    } finally {
-      setSavingPwd(false);
     }
   };
 
@@ -440,38 +421,6 @@ function ProfileTab({ user }: { user: User }) {
         <div className="mt-6">
           <Button type="submit" disabled={savingProfile} className="bg-gradient-hero text-primary-foreground hover:opacity-90">
             {savingProfile ? "Saving…" : "Save changes"}
-          </Button>
-        </div>
-      </form>
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (pwd.newPassword.length < 6) {
-            toast.error("New password must be at least 6 characters");
-            return;
-          }
-          changePwd();
-        }}
-        className="rounded-xl border border-border bg-card p-6"
-      >
-        <h2 className="font-serif text-2xl">Change password</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Rotate your password regularly for better security.</p>
-
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
-          <div>
-            <Label htmlFor="cur">Current password</Label>
-            <Input id="cur" type="password" value={pwd.currentPassword} onChange={(e) => setPwd({ ...pwd, currentPassword: e.target.value })} className="mt-1.5" />
-          </div>
-          <div>
-            <Label htmlFor="new">New password</Label>
-            <Input id="new" type="password" value={pwd.newPassword} onChange={(e) => setPwd({ ...pwd, newPassword: e.target.value })} className="mt-1.5" />
-          </div>
-        </div>
-
-        <div className="mt-6">
-          <Button type="submit" disabled={savingPwd || !pwd.currentPassword || !pwd.newPassword} variant="outline">
-            {savingPwd ? "Updating…" : "Update password"}
           </Button>
         </div>
       </form>
