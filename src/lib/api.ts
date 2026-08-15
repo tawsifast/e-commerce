@@ -804,31 +804,3 @@ export const getAdminOrders = async (query: { page: number; limit: number }) => 
     throw error;
   }
 };
-
-export const updateAdminOrderStatus = async (id: string, status: string) => {
-  try {
-    const tokenResponse = await fetch("/api/auth/token", {
-      credentials: "include",
-      cache: "no-store",
-    });
-    const tokenBody = await tokenResponse.json().catch(() => null);
-    const token = tokenBody?.token;
-
-    const response = await fetch(`${API_BASE_URL}/admin/orders/${id}/status`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json", authorization: `Bearer ${token}` },
-      credentials: "include",
-      cache: "no-store",
-      body: JSON.stringify({ status }),
-    });
-
-    const result = await response.json().catch(() => null);
-
-    if (!response.ok) {
-      throw new Error(result?.message ?? "Request failed");
-    }
-  } catch (error) {
-    console.error("Failed to update order status:", error);
-    throw error;
-  }
-};

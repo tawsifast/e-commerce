@@ -112,6 +112,9 @@ export function SellerDashboard({
         <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Seller dashboard</span>
         <h1 className="mt-2 font-serif text-5xl">Welcome back, {user.name.split(" ")[0]}</h1>
         <p className="mt-2 text-sm text-muted-foreground">Track revenue, manage products and fulfil orders.</p>
+        <Link href="/dashboard/buyer" className="mt-4 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline">
+          My purchases &amp; wishlist →
+        </Link>
       </motion.div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[240px_1fr]">

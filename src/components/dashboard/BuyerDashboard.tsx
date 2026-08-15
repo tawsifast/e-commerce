@@ -90,7 +90,7 @@ export function BuyerDashboard({
 
 // -------------------- Orders --------------------
 
-const ORDER_STATUS_META = {
+export const ORDER_STATUS_META = {
   pending: { label: "Pending", icon: Clock, className: "bg-muted text-foreground/70" },
   processing: { label: "Processing", icon: RefreshCw, className: "bg-primary/10 text-primary" },
   shipped: { label: "Shipped", icon: Truck, className: "bg-gold/15 text-gold-foreground" },

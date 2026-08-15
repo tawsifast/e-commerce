@@ -38,10 +38,10 @@ import {
   getApiErrorMessage,
   toggleProductVisibility,
   toggleUserBlock,
-  updateAdminOrderStatus,
   updateUserRole,
 } from "@/lib/api";
 import type { AdminOverview, AdminOrdersPage, AdminProductsPage, AdminUsersPage, AdminUser } from "@/lib/server-api";
+import { ORDER_STATUS_META } from "./BuyerDashboard";
 import { Button } from "@/components/ui/button";
 import { formatDate, formatPrice } from "@/lib/format";
 import {
@@ -74,7 +74,6 @@ const TABS = [
   { id: "orders", label: "Orders", icon: ShoppingBag },
 ];
 
-const ORDER_STATUSES = ["pending", "processing", "shipped", "delivered", "cancelled", "refunded"];
 const ROLES = ["buyer", "seller", "admin"];
 
 export function AdminDashboard({
@@ -97,6 +96,9 @@ export function AdminDashboard({
         <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Admin dashboard</span>
         <h1 className="mt-2 font-serif text-5xl">Store control room</h1>
         <p className="mt-2 text-sm text-muted-foreground">Signed in as {user.name} — manage the whole market.</p>
+        <Link href="/dashboard/buyer" className="mt-4 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline">
+          My purchases &amp; wishlist →
+        </Link>
       </motion.div>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-[240px_1fr]">
@@ -545,7 +547,6 @@ function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
   const [data, setData] = useState<AdminOrdersPage | null>(initialPage);
   const [loading, setLoading] = useState(initialPage === null);
   const [error, setError] = useState(false);
-  const [pendingId, setPendingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (page === 1 && initialPage) return;
@@ -564,24 +565,6 @@ function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
       });
     return () => { cancelled = true; };
   }, [page, initialPage]);
-
-  const reload = async () => {
-    const d = await getAdminOrders({ page, limit: 15 });
-    setData(d as AdminOrdersPage);
-  };
-
-  const setStatus = async (id: string, status: string) => {
-    setPendingId(id);
-    try {
-      await updateAdminOrderStatus(id, status);
-      toast.success("Order status updated");
-      await reload();
-    } catch (e) {
-      toast.error(getApiErrorMessage(e, "Couldn't update status"));
-    } finally {
-      setPendingId(null);
-    }
-  };
 
   if (error && !data) {
     return <ApiError />;
@@ -619,30 +602,22 @@ function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map((o) => (
+          {items.map((o) => {
+            const meta = ORDER_STATUS_META[o.status as keyof typeof ORDER_STATUS_META] ?? { label: o.status, className: "bg-muted text-foreground/70" };
+            return (
             <TableRow key={o._id}>
               <TableCell className="font-mono text-xs">#{o._id.slice(-10).toUpperCase()}</TableCell>
               <TableCell className="text-sm">{o.buyer?.name ?? "—"}</TableCell>
               <TableCell className="text-sm text-muted-foreground">{o.createdAt ? formatDate(o.createdAt) : "—"}</TableCell>
               <TableCell className="text-sm font-medium">{formatPrice(o.total ?? 0)}</TableCell>
               <TableCell>
-                <Select
-                  value={o.status}
-                  onValueChange={(v) => v && setStatus(o._id, v)}
-                  disabled={pendingId !== null}
-                >
-                  <SelectTrigger className="h-8 text-xs capitalize">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ORDER_STATUSES.map((s) => (
-                      <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium capitalize ${meta.className}`}>
+                  {meta.label}
+                </span>
               </TableCell>
             </TableRow>
-          ))}
+            );
+          })}
         </TableBody>
       </Table>
 
