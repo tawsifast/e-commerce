@@ -87,8 +87,8 @@ export function Navbar({ user }: { user: User | null }) {
           </Button>
 
           {navUser ? (
-            <div className="hidden items-center gap-2 md:flex">
-              <Link href={dashboardHref(navUser.role)} className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm">
+            <div className="flex items-center gap-2">
+              <Link href={dashboardHref(navUser.role)} className="flex items-center gap-2 rounded-full border border-border bg-card p-1.5 md:px-3 md:py-1.5 text-sm">
                 {navUser.photo ? (
                   <span className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full">
                     <Image src={navUser.photo} alt={navUser.name} fill sizes="24px" className="object-cover" />
@@ -96,9 +96,9 @@ export function Navbar({ user }: { user: User | null }) {
                 ) : (
                   <UserIcon className="h-4 w-4" />
                 )}
-                <span className="max-w-[8ch] truncate">{navUser.name.split(" ")[0]}</span>
+                <span className="hidden max-w-[8ch] truncate md:inline-block">{navUser.name.split(" ")[0]}</span>
               </Link>
-              <Button variant="ghost" size="icon" onClick={logout} aria-label="Log out">
+              <Button variant="ghost" size="icon" onClick={logout} aria-label="Log out" className="hidden md:inline-flex">
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
