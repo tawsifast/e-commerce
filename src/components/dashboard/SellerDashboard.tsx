@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { useEffect, useState, type ChangeEvent, type ReactElement, type ReactNode } from "react";
 import toast from "react-hot-toast";
@@ -117,8 +118,8 @@ export function SellerDashboard({
         </Link>
       </motion.div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[240px_1fr]">
-        <aside className="lg:sticky lg:top-24 lg:h-fit">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="min-w-0 lg:sticky lg:top-24 lg:h-fit">
           <div className="flex overflow-x-auto rounded-xl border border-border bg-card p-2 lg:flex-col lg:overflow-visible">
             {TABS.map((t) => {
               const Icon = t.icon;
@@ -140,7 +141,7 @@ export function SellerDashboard({
           </div>
         </aside>
 
-        <section>
+        <section className="min-w-0">
           {tab === "overview" && <OverviewTab initialOverview={initial.overview} initialAnalytics={initial.analytics} />}
           {tab === "products" && <ProductsTab initialProducts={initial.products} />}
           {tab === "orders" && <OrdersTab initialPage={initial.orders} />}
@@ -296,7 +297,7 @@ function OverviewTab({
 
         <div className="rounded-xl border border-border bg-card p-5">
           <h3 className="text-sm font-medium text-muted-foreground">Sales by category</h3>
-          <div className="mt-4 h-64">
+          <div className="relative mx-auto mt-4 aspect-square w-full max-w-72">
             {analytics?.categoryBreakdown?.length ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -419,6 +420,8 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
       </div>
 
       {products?.length ? (
+        <>
+        <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -439,8 +442,8 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
               >
                 <TableCell>
                   <div className="flex items-center gap-3">
-                    <div className="h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-muted">
-                      {p.images?.[0] && <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover" />}
+                    <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-muted">
+                      {p.images?.[0] && <Image src={p.images[0]} alt={p.title} fill sizes="44px" className="object-cover" />}
                     </div>
                     <div>
                       <Link href={`/products/${p._id}`} className="line-clamp-1 text-sm font-medium hover:underline">{p.title}</Link>
@@ -503,6 +506,73 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
             ))}
           </TableBody>
         </Table>
+        </div>
+
+        <div className="space-y-3 md:hidden">
+          {products.map((p) => (
+            <div key={p._id} className="rounded-xl border border-border bg-card p-4">
+              <div className="flex items-start gap-3">
+                <Link href={`/products/${p._id}`} className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+                  {p.images?.[0] && <Image src={p.images[0]} alt={p.title} fill sizes="48px" className="object-cover" />}
+                </Link>
+                <div className="min-w-0 flex-1">
+                  <Link href={`/products/${p._id}`} className="line-clamp-2 text-sm font-medium hover:underline">{p.title}</Link>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{p.brand}</p>
+                  <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${p.hidden ? "bg-muted text-muted-foreground" : "bg-success/10 text-success"}`}>
+                    {p.hidden ? "Hidden" : "Live"}
+                  </span>
+                </div>
+                <div className="flex shrink-0 gap-1.5">
+                  <ProductDialog
+                    mode="edit"
+                    product={p}
+                    trigger={
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" aria-label="Edit product">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    }
+                    onSaved={() => handleSaved("Product updated")}
+                  />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground"
+                    aria-label={p.hidden ? "Make product visible" : "Hide product"}
+                    disabled={deletingId !== null || visibilityId !== null}
+                    onClick={() => toggleVisibility(p._id, !p.hidden)}
+                  >
+                    {visibilityId === p._id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : p.hidden ? (
+                      <Eye className="h-4 w-4" />
+                    ) : (
+                      <EyeOff className="h-4 w-4" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-muted-foreground hover:bg-destructive/10! hover:text-destructive!"
+                    aria-label="Delete product"
+                    disabled={deletingId !== null || visibilityId !== null}
+                    onClick={() => setDeleteTarget(p)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border/60 pt-3 text-sm">
+                <span className="font-medium">{formatPrice(p.discountPrice ?? p.price)}</span>
+                {p.discountPrice != null && p.discountPrice < p.price && (
+                  <span className="text-xs text-muted-foreground line-through">{formatPrice(p.price)}</span>
+                )}
+                <span className="text-xs text-muted-foreground">{p.stock} in stock</span>
+                <span className="text-xs text-muted-foreground">{p.sold ?? 0} sold</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        </>
       ) : loading ? (
         <div className="space-y-3">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -639,7 +709,7 @@ function ProductDialog({
             <Label htmlFor="p-desc">Description</Label>
             <Textarea id="p-desc" value={form.description} onChange={set("description")} rows={4} placeholder="Tell buyers about it…" className="mt-1.5" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="p-price">Price ($)</Label>
               <Input id="p-price" type="number" min="0" step="0.01" value={form.price} onChange={set("price")} className="mt-1.5" />
@@ -649,7 +719,7 @@ function ProductDialog({
               <Input id="p-discount" type="number" min="0" step="0.01" value={form.discountPrice} onChange={set("discountPrice")} placeholder="Optional" className="mt-1.5" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="p-stock">Stock</Label>
               <Input id="p-stock" type="number" min="0" value={form.stock} onChange={set("stock")} className="mt-1.5" />
@@ -764,6 +834,7 @@ function OrdersTab({ initialPage }: { initialPage: SellerOrdersPage | null }) {
       )}
       <h2 className="font-serif text-2xl">Orders</h2>
 
+      <div className="hidden md:block">
       <Table>
         <TableHeader>
           <TableRow>
@@ -778,7 +849,7 @@ function OrdersTab({ initialPage }: { initialPage: SellerOrdersPage | null }) {
           {items.map((o) => (
             <TableRow key={o._id}>
               <TableCell className="font-mono text-xs">#{o._id.slice(-10).toUpperCase()}</TableCell>
-              <TableCell className="text-sm">{o.buyer?.name ?? "—"}</TableCell>
+              <TableCell className="text-sm"><span className="block max-w-40 truncate">{o.buyer?.name ?? "—"}</span></TableCell>
               <TableCell className="text-sm text-muted-foreground">{o.createdAt ? formatDate(o.createdAt) : "—"}</TableCell>
               <TableCell className="text-sm font-medium">{formatPrice(o.total ?? 0)}</TableCell>
               <TableCell>
@@ -801,6 +872,39 @@ function OrdersTab({ initialPage }: { initialPage: SellerOrdersPage | null }) {
           ))}
         </TableBody>
       </Table>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {items.map((o) => (
+          <div key={o._id} className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-mono text-xs">#{o._id.slice(-10).toUpperCase()}</p>
+                <p className="mt-1 truncate text-sm font-medium">{o.buyer?.name ?? "—"}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{o.createdAt ? formatDate(o.createdAt) : "—"}</p>
+              </div>
+              <span className="shrink-0 text-sm font-medium">{formatPrice(o.total ?? 0)}</span>
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/60 pt-3">
+              <span className="text-xs text-muted-foreground">Status</span>
+              <Select
+                value={o.status}
+                onValueChange={(v) => v && setStatus(o._id, v)}
+                disabled={updatingId !== null}
+              >
+                <SelectTrigger className="h-8 text-xs capitalize">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ORDER_STATUSES.map((s) => (
+                    <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">

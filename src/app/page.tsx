@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, ShieldCheck, Truck, RotateCcw, Star } from "lucide-react";
 import { getBestSellingProducts, getCategories, getFeaturedProducts, getLatestReviews } from "@/lib/server-api";
 import { ProductCard } from "@/components/site/ProductCard";
@@ -50,10 +51,14 @@ export default async function Home() {
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0">
-          <img
-            src={heroImage.src}
+          <Image
+            src={heroImage}
             alt=""
-            className="h-full w-full object-cover"
+            fill
+            sizes="100vw"
+            loading="eager"
+            fetchPriority="high"
+            className="object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/20" />
         </div>
@@ -101,13 +106,23 @@ export default async function Home() {
                 <Link
                   key={cat.name}
                   href={`/products?category=${encodeURIComponent(cat.name)}`}
-                  className="group aspect-square overflow-hidden rounded-2xl border border-border/60 bg-gradient-cream p-5 text-left transition-all hover:-translate-y-1 hover:shadow-md"
+                  className="group relative aspect-square overflow-hidden rounded-2xl border border-border/60 bg-gradient-cream p-5 text-left transition-all hover:-translate-y-1 hover:shadow-md"
                 >
-                  <div className="flex h-full flex-col justify-between">
-                    <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
+                  {cat.image && (
+                    <Image
+                      src={cat.image}
+                      alt=""
+                      fill
+                      sizes="(min-width: 768px) 20vw, 50vw"
+                      className="object-cover"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-background/95 via-background/40 to-background/10" />
+                  <div className="relative flex h-full flex-col justify-between">
+                    <span className="w-fit rounded-full bg-card/80 px-2 py-0.5 text-[11px] uppercase tracking-widest text-muted-foreground backdrop-blur">
                       {cat.count} items
                     </span>
-                    <span className="font-serif text-xl leading-tight">
+                    <span className="font-serif text-xl leading-tight text-foreground drop-shadow-sm">
                       {cat.name}
                     </span>
                   </div>

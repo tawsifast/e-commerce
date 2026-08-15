@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { useState } from "react";
+import Image from "next/image";
 import Zoom from "react-medium-image-zoom";
 import "react-medium-image-zoom/dist/styles.css";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,7 @@ export function Gallery({
       >
         {images[activeImg] && (
           <Zoom>
-            <img src={images[activeImg]} alt={title} className="h-full w-full object-cover" />
+            <Image src={images[activeImg]} alt={title} fill sizes="(min-width: 1024px) 50vw, 100vw" className="object-cover" />
           </Zoom>
         )}
         {children}
@@ -40,9 +41,9 @@ export function Gallery({
               variant="ghost"
               size="icon"
               onClick={() => setActiveImg(i)}
-              className={`aspect-square h-auto w-auto overflow-hidden rounded-md border-2! p-0 ${i === activeImg ? "border-primary!" : "border-transparent"}`}
+              className={`relative aspect-square h-auto w-auto overflow-hidden rounded-md border-2! p-0 ${i === activeImg ? "border-primary!" : "border-transparent"}`}
             >
-              <img src={img} alt="" className="h-full w-full object-cover" />
+              <Image src={img} alt="" fill sizes="96px" className="object-cover" />
             </Button>
           ))}
         </div>

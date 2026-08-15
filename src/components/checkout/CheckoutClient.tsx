@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Lock, Loader2 } from "lucide-react";
@@ -148,8 +149,8 @@ export function CheckoutClient() {
           <ul className="mt-4 divide-y divide-border">
             {items.map((i) => (
               <li key={i.productId} className="flex gap-3 py-3">
-                <div className="h-14 w-14 shrink-0 overflow-hidden rounded bg-muted">
-                  {i.image && <img src={i.image} alt="" className="h-full w-full object-cover" />}
+                <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded bg-muted">
+                  {i.image && <Image src={i.image} alt="" fill sizes="56px" className="object-cover" />}
                 </div>
                 <div className="flex flex-1 flex-col justify-between text-sm">
                   <p className="line-clamp-1 font-medium">{i.title}</p>

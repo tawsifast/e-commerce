@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useEffect, useState, type ReactNode } from "react";
@@ -54,9 +55,9 @@ export function BuyerDashboard({
         <p className="mt-2 text-sm text-muted-foreground">Track orders, manage your wishlist and profile.</p>
       </motion.div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[240px_1fr]">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
         {/* Sidebar tabs */}
-        <aside className="lg:sticky lg:top-24 lg:h-fit">
+        <aside className="min-w-0 lg:sticky lg:top-24 lg:h-fit">
           <div className="flex overflow-x-auto rounded-xl border border-border bg-card p-2 lg:flex-col lg:overflow-visible">
             {TABS.map((t) => {
               const Icon = t.icon;
@@ -78,7 +79,7 @@ export function BuyerDashboard({
           </div>
         </aside>
 
-        <section>
+        <section className="min-w-0">
           {tab === "orders" && <OrdersTab initialPage={initialOrders} />}
           {tab === "wishlist" && <WishlistTab initialItems={initialWishlist} />}
           {tab === "profile" && <ProfileTab user={user} />}
@@ -202,8 +203,8 @@ function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
             <ul className="mt-4 space-y-3">
               {order.items.map((it, i) => (
                 <li key={i} className="flex gap-3">
-                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
-                    {it.image && <img src={it.image} alt="" className="h-full w-full object-cover" />}
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md bg-muted">
+                    {it.image && <Image src={it.image} alt="" fill sizes="56px" className="object-cover" />}
                   </div>
                   <div className="flex flex-1 items-center justify-between text-sm">
                     <div>
@@ -322,8 +323,8 @@ function WishlistTab({ initialItems }: { initialItems: Product[] }) {
           transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.3) }}
           className="flex gap-4 rounded-xl border border-border bg-card p-4"
         >
-          <Link href={`/products/${p._id}`} className="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted">
-            {p.images?.[0] && <img src={p.images[0]} alt={p.title} className="h-full w-full object-cover" />}
+          <Link href={`/products/${p._id}`} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted">
+            {p.images?.[0] && <Image src={p.images[0]} alt={p.title} fill sizes="96px" className="object-cover" />}
           </Link>
           <div className="flex flex-1 flex-col">
             <div className="flex items-start justify-between gap-2">
@@ -395,7 +396,9 @@ function ProfileTab({ user }: { user: User }) {
 
         <div className="mt-6 flex items-center gap-4">
           {form.photo ? (
-            <img src={form.photo} alt={form.name} className="h-16 w-16 rounded-full object-cover ring-2 ring-border" />
+            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full ring-2 ring-border">
+              <Image src={form.photo} alt={form.name} fill sizes="64px" className="object-cover" />
+            </div>
           ) : (
             <div className="grid h-16 w-16 place-items-center rounded-full bg-gradient-hero text-lg font-semibold text-primary-foreground">
               {form.name?.[0]?.toUpperCase() ?? "U"}

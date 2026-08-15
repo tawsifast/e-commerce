@@ -12,6 +12,7 @@ const BETTER_AUTH_URL = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
 export interface CategorySummary {
   name: string;
   count: number;
+  image?: string;
 }
 
 export interface ProductListResponse {

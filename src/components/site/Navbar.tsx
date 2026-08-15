@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, ShoppingBag, User as UserIcon, X, LogOut, LayoutDashboard, Search, Info, Mail } from "lucide-react";
@@ -89,7 +90,9 @@ export function Navbar({ user }: { user: User | null }) {
             <div className="hidden items-center gap-2 md:flex">
               <Link href={dashboardHref(navUser.role)} className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm">
                 {navUser.photo ? (
-                  <img src={navUser.photo} alt={navUser.name} className="h-6 w-6 rounded-full object-cover" />
+                  <span className="relative h-6 w-6 shrink-0 overflow-hidden rounded-full">
+                    <Image src={navUser.photo} alt={navUser.name} fill sizes="24px" className="object-cover" />
+                  </span>
                 ) : (
                   <UserIcon className="h-4 w-4" />
                 )}

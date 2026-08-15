@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Star } from "lucide-react";
 import { formatPrice, isNewProduct } from "@/lib/format";
@@ -23,10 +24,12 @@ export function ProductCard({ product, index = 0 }: { product: Product; index?: 
     >
       <Link href={`/products/${product._id}`} className="relative block aspect-square overflow-hidden bg-muted">
         {product.images?.[0] && (
-          <img
+          <Image
             src={product.images[0]}
             alt={product.title}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+            fill
+            sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"
+            className="object-cover transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
           />
         )}

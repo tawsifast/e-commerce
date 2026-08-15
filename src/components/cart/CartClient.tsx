@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { Button } from "@/components/ui/button";
@@ -30,8 +31,8 @@ export function CartClient() {
         <ul className="divide-y divide-border rounded-xl border border-border bg-card">
           {items.map((item) => (
             <li key={item.productId} className="flex gap-4 p-4 sm:gap-6 sm:p-6">
-              <Link href={`/products/${item.productId}`} className="h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted sm:h-32 sm:w-32">
-                {item.image && <img src={item.image} alt={item.title} className="h-full w-full object-cover" />}
+              <Link href={`/products/${item.productId}`} className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-muted sm:h-32 sm:w-32">
+                {item.image && <Image src={item.image} alt={item.title} fill sizes="128px" className="object-cover" />}
               </Link>
               <div className="flex flex-1 flex-col">
                 <div className="flex items-start justify-between gap-3">

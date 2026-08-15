@@ -8,9 +8,9 @@ const InstagramIcon = () => (
   </svg>
 );
 
-const XIcon = () => (
+const LinkedInIcon = () => (
   <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
-    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.124 2.062 2.062 0 0 1 0 4.124zM7.119 20.452H3.555V9h3.564v11.452z" />
   </svg>
 );
 
@@ -34,7 +34,7 @@ export function Footer() {
           </p>
           <div className="mt-6 flex gap-3">
             <a href="https://www.instagram.com/_t_a_w_s_i_f__" aria-label="Instagram" className="grid h-9 w-9 place-items-center rounded-full border border-border text-foreground/60 hover:text-foreground"><InstagramIcon /></a>
-            <a href="#" aria-label="X" className="grid h-9 w-9 place-items-center rounded-full border border-border text-foreground/60 hover:text-foreground"><XIcon /></a>
+            <a href="https://www.linkedin.com/in/tawsif-islam" aria-label="LinkedIn" className="grid h-9 w-9 place-items-center rounded-full border border-border text-foreground/60 hover:text-foreground"><LinkedInIcon /></a>
             <a href="https://www.facebook.com/mdtawsifulislam.islam" aria-label="Facebook" className="grid h-9 w-9 place-items-center rounded-full border border-border text-foreground/60 hover:text-foreground"><FacebookIcon /></a>
           </div>
         </div>

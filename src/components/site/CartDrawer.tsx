@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
@@ -63,9 +64,9 @@ export function CartDrawer() {
                         <Link
                           href={`/products/${item.productId}`}
                           onClick={closeDrawer}
-                          className="h-20 w-20 shrink-0 overflow-hidden rounded-md bg-muted"
+                          className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md bg-muted"
                         >
-                          {item.image && <img src={item.image} alt={item.title} className="h-full w-full object-cover" />}
+                          {item.image && <Image src={item.image} alt={item.title} fill sizes="80px" className="object-cover" />}
                         </Link>
                         <div className="flex flex-1 flex-col gap-1">
                           <div className="flex items-start justify-between gap-2">

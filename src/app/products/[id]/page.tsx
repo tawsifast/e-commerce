@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { Star, Truck, ShieldCheck } from "lucide-react";
 import { getProductById, getProductReviews, getWishlist } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/auth";
@@ -122,7 +123,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           {seller && (
             <div className="mt-8 flex items-center gap-3 rounded-xl border border-border bg-surface p-4">
               {seller.photo ? (
-                <img src={seller.photo} alt={seller.name} className="h-10 w-10 rounded-full object-cover" />
+                <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full">
+                  <Image src={seller.photo} alt={seller.name} fill sizes="40px" className="object-cover" />
+                </div>
               ) : (
                 <div className="grid h-10 w-10 place-items-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">{seller.name[0]}</div>
               )}
@@ -158,7 +161,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
               <article key={r._id} className="py-5">
                 <div className="flex items-center gap-3">
                   {r.user.photo ? (
-                    <img src={r.user.photo} alt={r.user.name} className="h-9 w-9 rounded-full object-cover" />
+                    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full">
+                      <Image src={r.user.photo} alt={r.user.name} fill sizes="36px" className="object-cover" />
+                    </div>
                   ) : (
                     <div className="grid h-9 w-9 place-items-center rounded-full bg-secondary text-sm font-semibold">{r.user.name[0]}</div>
                   )}

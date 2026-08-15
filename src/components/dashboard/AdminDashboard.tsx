@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
@@ -101,8 +102,8 @@ export function AdminDashboard({
         </Link>
       </motion.div>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[240px_1fr]">
-        <aside className="lg:sticky lg:top-24 lg:h-fit">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <aside className="min-w-0 lg:sticky lg:top-24 lg:h-fit">
           <div className="flex overflow-x-auto rounded-xl border border-border bg-card p-2 lg:flex-col lg:overflow-visible">
             {TABS.map((t) => {
               const Icon = t.icon;
@@ -124,7 +125,7 @@ export function AdminDashboard({
           </div>
         </aside>
 
-        <section>
+        <section className="min-w-0">
           {tab === "overview" && <OverviewTab initialOverview={initial.overview} />}
           {tab === "users" && <UsersTab initialPage={initial.users} />}
           {tab === "products" && <ProductsTab initialPage={initial.products} />}
@@ -310,6 +311,7 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
       )}
       <h2 className="font-serif text-2xl">Users</h2>
 
+      <div className="hidden md:block">
       <Table>
         <TableHeader>
           <TableRow>
@@ -325,12 +327,12 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
             <TableRow key={u._id}>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-muted text-sm font-medium">
-                    {u.photo ? <img src={u.photo} alt="" className="h-full w-full rounded-full object-cover" /> : u.name?.[0]?.toUpperCase()}
+                  <div className="relative grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full bg-muted text-sm font-medium">
+                    {u.photo ? <Image src={u.photo} alt="" fill sizes="36px" className="object-cover" /> : u.name?.[0]?.toUpperCase()}
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">{u.name}</p>
-                    <p className="text-xs text-muted-foreground">{u.email}</p>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{u.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">{u.email}</p>
                   </div>
                 </div>
               </TableCell>
@@ -386,6 +388,69 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
           ))}
         </TableBody>
       </Table>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {items.map((u) => (
+          <div key={u._id} className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-start gap-3">
+              <div className="relative grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-muted text-sm font-medium">
+                {u.photo ? <Image src={u.photo} alt="" fill sizes="40px" className="object-cover" /> : u.name?.[0]?.toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{u.name}</p>
+                <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+              </div>
+              <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium capitalize ${ROLE_VARIANTS[u.role] ?? "bg-muted text-muted-foreground"}`}>
+                {u.role}
+              </span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${u.blocked ? "bg-destructive/10 text-destructive" : "bg-success/10 text-success"}`}>
+                  {u.blocked ? <Ban className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
+                  {u.blocked ? "Blocked" : "Active"}
+                </span>
+                <span className="text-xs text-muted-foreground">{u.createdAt ? formatDate(u.createdAt) : "—"}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Select value={u.role} onValueChange={(v) => v && setRole(u._id, v)} disabled={pendingId !== null}>
+                  <SelectTrigger className="h-8 w-28 text-xs capitalize">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((r) => (
+                      <SelectItem key={r} value={r} className="capitalize">{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground"
+                  aria-label={u.blocked ? "Unblock user" : "Block user"}
+                  disabled={pendingId !== null}
+                  onClick={() => toggleBlock(u._id, !u.blocked)}
+                >
+                  {u.blocked ? <ShieldCheck className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:bg-destructive/10! hover:text-destructive!"
+                  aria-label="Delete user"
+                  disabled={pendingId !== null}
+                  onClick={() => {
+                    if (confirm(`Delete user ${u.name}? This cannot be undone.`)) del(u._id);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {totalPages > 1 && <Pager page={page} setPage={setPage} totalPages={totalPages} />}
     </div>
@@ -474,6 +539,7 @@ function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null })
       )}
       <h2 className="font-serif text-2xl">Products</h2>
 
+      <div className="hidden md:block">
       <Table>
         <TableHeader>
           <TableRow>
@@ -489,8 +555,8 @@ function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null })
             <TableRow key={p._id}>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted">
-                    {p.images?.[0] && <img src={p.images[0]} alt="" className="h-full w-full object-cover" />}
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-muted">
+                    {p.images?.[0] && <Image src={p.images[0]} alt="" fill sizes="40px" className="object-cover" />}
                   </div>
                   <Link href={`/products/${p._id}`} className="line-clamp-1 text-sm font-medium hover:underline">
                     {p.title}
@@ -534,6 +600,51 @@ function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null })
           ))}
         </TableBody>
       </Table>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {items.map((p) => (
+          <div key={p._id} className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-start gap-3">
+              <Link href={`/products/${p._id}`} className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted">
+                {p.images?.[0] && <Image src={p.images[0]} alt="" fill sizes="48px" className="object-cover" />}
+              </Link>
+              <div className="min-w-0 flex-1">
+                <Link href={`/products/${p._id}`} className="line-clamp-2 text-sm font-medium hover:underline">{p.title}</Link>
+                <p className="mt-0.5 text-xs text-muted-foreground">{p.seller?.name ?? "—"}</p>
+                <span className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${p.hidden ? "bg-muted text-muted-foreground" : "bg-success/10 text-success"}`}>
+                  {p.hidden ? "Hidden" : "Live"}
+                </span>
+              </div>
+              <span className="shrink-0 text-sm font-medium">{formatPrice(p.price)}</span>
+            </div>
+            <div className="mt-3 flex justify-end gap-1.5 border-t border-border/60 pt-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground"
+                aria-label={p.hidden ? "Make visible" : "Hide product"}
+                disabled={pendingId !== null}
+                onClick={() => toggleVisibility(p._id, !p.hidden)}
+              >
+                {p.hidden ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-muted-foreground hover:bg-destructive/10! hover:text-destructive!"
+                aria-label="Delete product"
+                disabled={pendingId !== null}
+                onClick={() => {
+                  if (confirm(`Delete "${p.title}"? This cannot be undone.`)) del(p._id);
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
 
       {totalPages > 1 && <Pager page={page} setPage={setPage} totalPages={totalPages} />}
     </div>
@@ -591,6 +702,7 @@ function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
         </div>
       )}
 
+      <div className="hidden md:block">
       <Table>
         <TableHeader>
           <TableRow>
@@ -607,7 +719,7 @@ function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
             return (
             <TableRow key={o._id}>
               <TableCell className="font-mono text-xs">#{o._id.slice(-10).toUpperCase()}</TableCell>
-              <TableCell className="text-sm">{o.buyer?.name ?? "—"}</TableCell>
+              <TableCell className="text-sm"><span className="block max-w-40 truncate">{o.buyer?.name ?? "—"}</span></TableCell>
               <TableCell className="text-sm text-muted-foreground">{o.createdAt ? formatDate(o.createdAt) : "—"}</TableCell>
               <TableCell className="text-sm font-medium">{formatPrice(o.total ?? 0)}</TableCell>
               <TableCell>
@@ -620,6 +732,30 @@ function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
           })}
         </TableBody>
       </Table>
+      </div>
+
+      <div className="space-y-3 md:hidden">
+        {items.map((o) => {
+          const meta = ORDER_STATUS_META[o.status as keyof typeof ORDER_STATUS_META] ?? { label: o.status, className: "bg-muted text-foreground/70" };
+          return (
+          <div key={o._id} className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-mono text-xs">#{o._id.slice(-10).toUpperCase()}</p>
+                <p className="mt-1 truncate text-sm font-medium">{o.buyer?.name ?? "—"}</p>
+              </div>
+              <span className="shrink-0 text-sm font-medium">{formatPrice(o.total ?? 0)}</span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3">
+              <span className="text-xs text-muted-foreground">{o.createdAt ? formatDate(o.createdAt) : "—"}</span>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium capitalize ${meta.className}`}>
+                {meta.label}
+              </span>
+            </div>
+          </div>
+          );
+        })}
+      </div>
 
       {totalPages > 1 && <Pager page={page} setPage={setPage} totalPages={totalPages} />}
     </div>
