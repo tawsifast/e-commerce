@@ -6,6 +6,7 @@ import { Footer } from "@/components/site/Footer";
 import { CartDrawer } from "@/components/site/CartDrawer";
 import { Toaster } from "react-hot-toast";
 import { getSessionUser } from "@/lib/auth";
+import ChatWidget from "@/components/ui/chat-widget";
 
 export const metadata: Metadata = {
   title: "Marketa — A curated marketplace for makers and buyers",
@@ -35,7 +36,10 @@ export default async function RootLayout({
         <Providers>
           <div className="flex min-h-screen flex-col">
             <Navbar user={user} />
-            <main className="flex-1">{children}</main>
+            <main className="flex-1">
+              {children}
+              <ChatWidget/>
+              </main>
             <Footer />
             <CartDrawer />
           </div>
