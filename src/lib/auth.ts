@@ -5,10 +5,13 @@ import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { jwt } from "better-auth/plugins";
 import type { User } from "./types";
 
-const client = new MongoClient(process.env.MONGODB_URI as string);
+const globalForMongo = globalThis as unknown as { mongoClient?: MongoClient };
+const client = globalForMongo.mongoClient ?? new MongoClient(process.env.MONGODB_URI as string);
+globalForMongo.mongoClient = client;
 const db = client.db("my-shop");
 
 export const auth = betterAuth({
+  trustHost: true,
   database: mongodbAdapter(db, {
     // Optional: if you don't provide a client, database transactions won't be enabled.
     client

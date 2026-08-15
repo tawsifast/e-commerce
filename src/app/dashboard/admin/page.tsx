@@ -3,10 +3,12 @@ import { getSessionUser } from "@/lib/auth";
 import { getAdminOrders, getAdminOverview, getAdminProducts, getAdminUsers } from "@/lib/server-api";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboardPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  if (user.role !== "admin") redirect("/");
+  if (user.role !== "admin") redirect("/unauthorized");
 
   const [overview, users, products, orders] = await Promise.all([
     getAdminOverview().catch(() => null),

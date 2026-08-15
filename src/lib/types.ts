@@ -11,6 +11,7 @@ export interface Product {
   category?: string;
   price: number;
   discountPrice?: number | null;
+  hidden?: boolean;
   images?: string[];
   createdAt: string;
   averageRating?: number;

@@ -8,6 +8,8 @@ import { NewsletterForm } from "@/components/site/NewsletterForm";
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero.jpg";
 
+export const dynamic = "force-dynamic";
+
 async function getHomeData() {
   try {
     const [featured, bestSellers, categories, reviews] = await Promise.all([

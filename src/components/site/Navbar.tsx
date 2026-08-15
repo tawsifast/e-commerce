@@ -24,6 +24,17 @@ export function Navbar({ user }: { user: User | null }) {
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
+  const { data: session } = authClient.useSession();
+
+  const navUser: User | null = session?.user
+    ? {
+        _id: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+        role: (session.user.role ?? "buyer") as User["role"],
+        photo: session.user.image ?? undefined,
+      }
+    : user;
 
   const logout = async () => {
     await authClient.signOut();
@@ -51,8 +62,8 @@ export function Navbar({ user }: { user: User | null }) {
           <Link href="/contact" className={`text-sm font-medium transition-colors hover:text-foreground ${isActive(pathname, "/contact") ? "text-foreground" : "text-foreground/70"}`}>
             Contact
           </Link>
-          {user && (
-            <Link href={dashboardHref(user.role)} className={`text-sm font-medium transition-colors hover:text-foreground ${isActive(pathname, "/dashboard") ? "text-foreground" : "text-foreground/70"}`}>
+          {navUser && (
+            <Link href={dashboardHref(navUser.role)} className={`text-sm font-medium transition-colors hover:text-foreground ${isActive(pathname, "/dashboard") ? "text-foreground" : "text-foreground/70"}`}>
               Dashboard
             </Link>
           )}
@@ -74,15 +85,15 @@ export function Navbar({ user }: { user: User | null }) {
             )}
           </Button>
 
-          {user ? (
+          {navUser ? (
             <div className="hidden items-center gap-2 md:flex">
-              <Link href={dashboardHref(user.role)} className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm">
-                {user.photo ? (
-                  <img src={user.photo} alt={user.name} className="h-6 w-6 rounded-full object-cover" />
+              <Link href={dashboardHref(navUser.role)} className="flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-sm">
+                {navUser.photo ? (
+                  <img src={navUser.photo} alt={navUser.name} className="h-6 w-6 rounded-full object-cover" />
                 ) : (
                   <UserIcon className="h-4 w-4" />
                 )}
-                <span className="max-w-[8ch] truncate">{user.name.split(" ")[0]}</span>
+                <span className="max-w-[8ch] truncate">{navUser.name.split(" ")[0]}</span>
               </Link>
               <Button variant="ghost" size="icon" onClick={logout} aria-label="Log out">
                 <LogOut className="h-4 w-4" />
@@ -125,9 +136,9 @@ export function Navbar({ user }: { user: User | null }) {
               <MobileLink href="/products" onClick={() => setMobileOpen(false)} icon={<ShoppingBag className="h-4 w-4" />}>All Products</MobileLink>
               <MobileLink href="/about" onClick={() => setMobileOpen(false)} icon={<Info className="h-4 w-4" />}>About</MobileLink>
               <MobileLink href="/contact" onClick={() => setMobileOpen(false)} icon={<Mail className="h-4 w-4" />}>Contact</MobileLink>
-              {user ? (
+              {navUser ? (
                 <>
-                  <MobileLink href={dashboardHref(user.role)} onClick={() => setMobileOpen(false)} icon={<LayoutDashboard className="h-4 w-4" />}>
+                  <MobileLink href={dashboardHref(navUser.role)} onClick={() => setMobileOpen(false)} icon={<LayoutDashboard className="h-4 w-4" />}>
                     Dashboard
                   </MobileLink>
                   <Button

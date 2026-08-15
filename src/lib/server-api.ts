@@ -166,15 +166,6 @@ export interface AdminOrdersPage {
 
 export const getProducts = async (query: ProductQuery): Promise<ProductListResponse> => {
   try {
-    const cookieStore = await cookies();
-
-    let sessionCookie = cookieStore.get(SESSION_COOKIE);
-    if (!sessionCookie) {
-      sessionCookie = cookieStore
-        .getAll()
-        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
-    }
-
     const url = new URL(`${API_BASE_URL}/products`);
     if (query.search) url.searchParams.set("search", query.search);
     if (query.category) url.searchParams.set("category", query.category);
@@ -187,16 +178,13 @@ export const getProducts = async (query: ProductQuery): Promise<ProductListRespo
 
     const headers = new Headers();
     headers.set("Accept", "application/json");
-    if (sessionCookie) {
-      headers.set("cookie", `${sessionCookie.name}=${sessionCookie.value}`);
-    }
 
     const response = await fetch(url, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -208,27 +196,15 @@ export const getProducts = async (query: ProductQuery): Promise<ProductListRespo
 
 export const getFeaturedProducts = async (): Promise<Product[]> => {
   try {
-    const cookieStore = await cookies();
-
-    let sessionCookie = cookieStore.get(SESSION_COOKIE);
-    if (!sessionCookie) {
-      sessionCookie = cookieStore
-        .getAll()
-        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
-    }
-
     const headers = new Headers();
     headers.set("Accept", "application/json");
-    if (sessionCookie) {
-      headers.set("cookie", `${sessionCookie.name}=${sessionCookie.value}`);
-    }
 
     const response = await fetch(`${API_BASE_URL}/products/featured`, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result.items;
@@ -240,27 +216,15 @@ export const getFeaturedProducts = async (): Promise<Product[]> => {
 
 export const getBestSellingProducts = async (): Promise<Product[]> => {
   try {
-    const cookieStore = await cookies();
-
-    let sessionCookie = cookieStore.get(SESSION_COOKIE);
-    if (!sessionCookie) {
-      sessionCookie = cookieStore
-        .getAll()
-        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
-    }
-
     const headers = new Headers();
     headers.set("Accept", "application/json");
-    if (sessionCookie) {
-      headers.set("cookie", `${sessionCookie.name}=${sessionCookie.value}`);
-    }
 
     const response = await fetch(`${API_BASE_URL}/products/best-sellers`, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result.items;
@@ -272,27 +236,15 @@ export const getBestSellingProducts = async (): Promise<Product[]> => {
 
 export const getCategories = async (): Promise<CategorySummary[]> => {
   try {
-    const cookieStore = await cookies();
-
-    let sessionCookie = cookieStore.get(SESSION_COOKIE);
-    if (!sessionCookie) {
-      sessionCookie = cookieStore
-        .getAll()
-        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
-    }
-
     const headers = new Headers();
     headers.set("Accept", "application/json");
-    if (sessionCookie) {
-      headers.set("cookie", `${sessionCookie.name}=${sessionCookie.value}`);
-    }
 
     const response = await fetch(`${API_BASE_URL}/products/categories`, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result.items;
@@ -304,27 +256,15 @@ export const getCategories = async (): Promise<CategorySummary[]> => {
 
 export const getProductById = async (id: string): Promise<Product> => {
   try {
-    const cookieStore = await cookies();
-
-    let sessionCookie = cookieStore.get(SESSION_COOKIE);
-    if (!sessionCookie) {
-      sessionCookie = cookieStore
-        .getAll()
-        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
-    }
-
     const headers = new Headers();
     headers.set("Accept", "application/json");
-    if (sessionCookie) {
-      headers.set("cookie", `${sessionCookie.name}=${sessionCookie.value}`);
-    }
 
     const response = await fetch(`${API_BASE_URL}/products/${id}`, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result.product;
@@ -336,27 +276,15 @@ export const getProductById = async (id: string): Promise<Product> => {
 
 export const getProductReviews = async (id: string): Promise<ReviewItem[]> => {
   try {
-    const cookieStore = await cookies();
-
-    let sessionCookie = cookieStore.get(SESSION_COOKIE);
-    if (!sessionCookie) {
-      sessionCookie = cookieStore
-        .getAll()
-        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
-    }
-
     const headers = new Headers();
     headers.set("Accept", "application/json");
-    if (sessionCookie) {
-      headers.set("cookie", `${sessionCookie.name}=${sessionCookie.value}`);
-    }
 
     const response = await fetch(`${API_BASE_URL}/products/${id}/reviews`, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result.items;
@@ -368,27 +296,15 @@ export const getProductReviews = async (id: string): Promise<ReviewItem[]> => {
 
 export const getLatestReviews = async (): Promise<HomeReview[]> => {
   try {
-    const cookieStore = await cookies();
-
-    let sessionCookie = cookieStore.get(SESSION_COOKIE);
-    if (!sessionCookie) {
-      sessionCookie = cookieStore
-        .getAll()
-        .find((c) => c.name.includes("session") || c.name.includes("better-auth"));
-    }
-
     const headers = new Headers();
     headers.set("Accept", "application/json");
-    if (sessionCookie) {
-      headers.set("cookie", `${sessionCookie.name}=${sessionCookie.value}`);
-    }
 
     const response = await fetch(`${API_BASE_URL}/reviews/latest`, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result.items;
@@ -432,10 +348,10 @@ export const getMyOrders = async (page = 1, limit = 10): Promise<OrdersPage> => 
 
     const response = await fetch(url, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -471,10 +387,10 @@ export const getWishlist = async (): Promise<Product[]> => {
 
     const response = await fetch(`${API_BASE_URL}/wishlist`, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result.items;
@@ -514,10 +430,10 @@ export const getSellerOverview = async (): Promise<SellerOverview> => {
 
     const response = await fetch(`${API_BASE_URL}/seller/overview`, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -556,10 +472,10 @@ export const getSellerAnalytics = async (range = "30d"): Promise<SellerAnalytics
 
     const response = await fetch(url, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -595,10 +511,10 @@ export const getSellerProducts = async (): Promise<(Product & { sold?: number })
 
     const response = await fetch(`${API_BASE_URL}/seller/products`, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result.items;
@@ -638,10 +554,10 @@ export const getSellerOrders = async (page = 1, limit = 10): Promise<SellerOrder
 
     const response = await fetch(url, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -681,10 +597,10 @@ export const getAdminOverview = async (): Promise<AdminOverview> => {
 
     const response = await fetch(`${API_BASE_URL}/admin/overview`, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -724,10 +640,10 @@ export const getAdminUsers = async (page = 1, limit = 15): Promise<AdminUsersPag
 
     const response = await fetch(url, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -767,10 +683,10 @@ export const getAdminProducts = async (page = 1, limit = 15): Promise<AdminProdu
 
     const response = await fetch(url, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -810,10 +726,10 @@ export const getAdminOrders = async (page = 1, limit = 15): Promise<AdminOrdersP
 
     const response = await fetch(url, { headers, cache: "no-store" });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;

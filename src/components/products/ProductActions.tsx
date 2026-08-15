@@ -4,24 +4,40 @@ import { useRouter } from "next/navigation";
 import { Heart, Minus, Plus } from "lucide-react";
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { addToWishlist, getApiErrorMessage } from "@/lib/api";
+import { addToWishlist, getApiErrorMessage, removeFromWishlist } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart-context";
 import type { Product, User } from "@/lib/types";
 
-export function ProductActions({ product, user }: { product: Product; user: User | null }) {
+export function ProductActions({
+  product,
+  user,
+  isInWishlist,
+}: {
+  product: Product;
+  user: User | null;
+  isInWishlist: boolean;
+}) {
   const { addItem } = useCart();
   const router = useRouter();
   const [qty, setQty] = useState(1);
+  const [wishlisted, setWishlisted] = useState(isInWishlist);
   const [wishPending, setWishPending] = useState(false);
 
-  const addWish = async () => {
+  const toggleWishlist = async () => {
     setWishPending(true);
     try {
-      await addToWishlist(product._id);
-      toast.success("Added to wishlist");
+      if (wishlisted) {
+        await removeFromWishlist(product._id);
+        setWishlisted(false);
+        toast.success("Removed from wishlist");
+      } else {
+        await addToWishlist(product._id);
+        setWishlisted(true);
+        toast.success("Added to wishlist");
+      }
     } catch (e) {
-      toast.error(getApiErrorMessage(e, "Couldn't add to wishlist"));
+      toast.error(getApiErrorMessage(e, "Couldn't update wishlist"));
     } finally {
       setWishPending(false);
     }
@@ -59,8 +75,8 @@ export function ProductActions({ product, user }: { product: Product; user: User
         <Button onClick={() => requireAuth(buyNow)} disabled={product.stock === 0} variant="outline" className="flex-1 border-primary text-primary">
           Buy now
         </Button>
-        <Button onClick={() => requireAuth(addWish)} variant="outline" size="icon" aria-label="Wishlist" disabled={wishPending}>
-          <Heart className="h-4 w-4" />
+        <Button onClick={() => requireAuth(toggleWishlist)} variant="outline" size="icon" aria-label="Wishlist" disabled={wishPending}>
+          <Heart className={`h-4 w-4 ${wishlisted ? "fill-destructive text-destructive" : ""}`} />
         </Button>
       </div>
     </>

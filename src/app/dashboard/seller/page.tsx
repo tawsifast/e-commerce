@@ -3,10 +3,12 @@ import { getSessionUser } from "@/lib/auth";
 import { getSellerAnalytics, getSellerOrders, getSellerOverview, getSellerProducts } from "@/lib/server-api";
 import { SellerDashboard } from "@/components/dashboard/SellerDashboard";
 
+export const dynamic = "force-dynamic";
+
 export default async function SellerDashboardPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  if (user.role !== "seller" && user.role !== "admin") redirect("/");
+  if (user.role !== "seller") redirect("/unauthorized");
 
   const [overview, analytics, products, orders] = await Promise.all([
     getSellerOverview().catch(() => null),

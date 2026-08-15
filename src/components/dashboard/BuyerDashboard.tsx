@@ -106,7 +106,6 @@ function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (page === 1 && initialPage) return;
     let cancelled = false;
     getMyOrders(page, 8)
       .then((data) => {

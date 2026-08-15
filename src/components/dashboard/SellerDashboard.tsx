@@ -21,12 +21,15 @@ import {
 import {
   BarChart3,
   DollarSign,
+  Eye,
   EyeOff,
+  Loader2,
   MoreVertical,
   Package,
   Plus,
   ShoppingBag,
   Star,
+  Trash2,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
@@ -41,6 +44,7 @@ import {
   getSellerOverview,
   getSellerProducts,
   updateProduct,
+  updateProductVisibility,
   updateSellerOrderStatus,
 } from "@/lib/api";
 import type { SellerAnalytics, SellerOverview, SellerOrdersPage } from "@/lib/server-api";
@@ -326,6 +330,8 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
   const [loading, setLoading] = useState(initialProducts === null);
   const [error, setError] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [visibilityId, setVisibilityId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<(Product & { sold?: number }) | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -364,6 +370,19 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
       toast.error(getApiErrorMessage(e, "Couldn't delete product"));
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const toggleVisibility = async (id: string, hidden: boolean) => {
+    setVisibilityId(id);
+    try {
+      await updateProductVisibility(id, hidden);
+      toast.success(hidden ? "Product hidden" : "Product is visible again");
+      await refresh();
+    } catch (e) {
+      toast.error(getApiErrorMessage(e, "Couldn't update product visibility"));
+    } finally {
+      setVisibilityId(null);
     }
   };
 
@@ -423,6 +442,9 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
                     <div>
                       <Link href={`/products/${p._id}`} className="line-clamp-1 text-sm font-medium hover:underline">{p.title}</Link>
                       <p className="text-xs text-muted-foreground">{p.brand}</p>
+                      <span className={`mt-0.5 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${p.hidden ? "bg-muted text-muted-foreground" : "bg-success/10 text-success"}`}>
+                        {p.hidden ? "Hidden" : "Live"}
+                      </span>
                     </div>
                   </div>
                 </TableCell>
@@ -449,12 +471,28 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-8 w-8 text-muted-foreground"
+                      aria-label={p.hidden ? "Make product visible" : "Hide product"}
+                      disabled={deletingId !== null || visibilityId !== null}
+                      onClick={() => toggleVisibility(p._id, !p.hidden)}
+                    >
+                      {visibilityId === p._id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : p.hidden ? (
+                        <Eye className="h-4 w-4" />
+                      ) : (
+                        <EyeOff className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-8 w-8 text-muted-foreground hover:bg-destructive/10! hover:text-destructive!"
                       aria-label="Delete product"
-                      disabled={deletingId !== null}
-                      onClick={() => del(p._id)}
+                      disabled={deletingId !== null || visibilityId !== null}
+                      onClick={() => setDeleteTarget(p)}
                     >
-                      <EyeOff className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </TableCell>
@@ -482,6 +520,34 @@ function ProductsTab({ initialProducts }: { initialProducts: (Product & { sold?:
           }
         />
       )}
+      <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete product?</DialogTitle>
+            <DialogDescription>
+              <span className="font-medium text-foreground">{deleteTarget?.title}</span> will be permanently
+              deleted, including its reviews. This can&apos;t be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 flex justify-end gap-2">
+            <Button variant="outline" disabled={deletingId !== null} onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={deletingId !== null}
+              onClick={() => {
+                const target = deleteTarget;
+                setDeleteTarget(null);
+                if (target) del(target._id);
+              }}
+            >
+              {deletingId !== null && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              {deletingId !== null ? "Deleting…" : "Delete product"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

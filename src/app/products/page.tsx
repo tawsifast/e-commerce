@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   description: "Browse every product listed on Marketa.",
 };
 
+export const dynamic = "force-dynamic";
+
 interface SearchParams {
   search?: string;
   category?: string;

@@ -62,10 +62,10 @@ export const addReview = async (productId: string, payload: { rating: number; co
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result.review;
@@ -90,10 +90,10 @@ export const getWishlist = async (): Promise<Product[]> => {
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result.items;
@@ -120,10 +120,10 @@ export const addToWishlist = async (productId: string) => {
       body: JSON.stringify({ productId }),
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
   } catch (error) {
     console.error("Failed to add to wishlist:", error);
@@ -147,10 +147,10 @@ export const removeFromWishlist = async (productId: string) => {
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
   } catch (error) {
     console.error("Failed to remove from wishlist:", error);
@@ -175,10 +175,10 @@ export const createOrder = async (payload: CreateOrderPayload) => {
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -205,10 +205,10 @@ export const confirmOrder = async (orderId: string, sessionId: string): Promise<
       body: JSON.stringify({ sessionId }),
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result.order;
@@ -237,10 +237,10 @@ export const getMyOrders = async (page = 1, limit = 10) => {
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -266,10 +266,10 @@ export const cancelOrder = async (orderId: string) => {
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
   } catch (error) {
     console.error("Failed to cancel order:", error);
@@ -296,10 +296,10 @@ export const getSellerOverview = async () => {
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -327,10 +327,10 @@ export const getSellerAnalytics = async (range = "30d") => {
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -355,10 +355,10 @@ export const getSellerProducts = async () => {
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result.items;
@@ -385,10 +385,10 @@ export const createProduct = async (payload: ProductPayload) => {
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
   } catch (error) {
     console.error("Failed to create product:", error);
@@ -413,10 +413,10 @@ export const updateProduct = async (id: string, payload: ProductPayload) => {
       body: JSON.stringify(payload),
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
   } catch (error) {
     console.error("Failed to update product:", error);
@@ -440,13 +440,41 @@ export const deleteSellerProduct = async (id: string) => {
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
   } catch (error) {
     console.error("Failed to delete product:", error);
+    throw error;
+  }
+};
+
+export const updateProductVisibility = async (id: string, hidden: boolean) => {
+  try {
+    const tokenResponse = await fetch("/api/auth/token", {
+      credentials: "include",
+      cache: "no-store",
+    });
+    const tokenBody = await tokenResponse.json().catch(() => null);
+    const token = tokenBody?.token;
+
+    const response = await fetch(`${API_BASE_URL}/seller/products/${id}/visibility`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", authorization: `Bearer ${token}` },
+      credentials: "include",
+      cache: "no-store",
+      body: JSON.stringify({ hidden }),
+    });
+
+    const result = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      throw new Error(result?.message ?? "Request failed");
+    }
+  } catch (error) {
+    console.error("Failed to update product visibility:", error);
     throw error;
   }
 };
@@ -470,10 +498,10 @@ export const getSellerOrders = async (page = 1, limit = 10) => {
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -500,10 +528,10 @@ export const updateSellerOrderStatus = async (orderId: string, status: string) =
       body: JSON.stringify({ status }),
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
   } catch (error) {
     console.error("Failed to update order status:", error);
@@ -530,10 +558,10 @@ export const getAdminOverview = async () => {
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -562,10 +590,10 @@ export const getAdminUsers = async (query: { page: number; limit: number }) => {
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -592,10 +620,10 @@ export const updateUserRole = async (id: string, role: string) => {
       body: JSON.stringify({ role }),
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
   } catch (error) {
     console.error("Failed to update user role:", error);
@@ -620,10 +648,10 @@ export const toggleUserBlock = async (id: string, blocked: boolean) => {
       body: JSON.stringify({ blocked }),
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
   } catch (error) {
     console.error("Failed to update user:", error);
@@ -647,10 +675,10 @@ export const deleteAdminUser = async (id: string) => {
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
   } catch (error) {
     console.error("Failed to delete user:", error);
@@ -677,10 +705,10 @@ export const getAdminProducts = async (query: { page: number; limit: number }) =
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -707,10 +735,10 @@ export const toggleProductVisibility = async (id: string, hidden: boolean) => {
       body: JSON.stringify({ hidden }),
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
   } catch (error) {
     console.error("Failed to update product:", error);
@@ -734,10 +762,10 @@ export const deleteAdminProduct = async (id: string) => {
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
   } catch (error) {
     console.error("Failed to delete product:", error);
@@ -764,10 +792,10 @@ export const getAdminOrders = async (query: { page: number; limit: number }) => 
       cache: "no-store",
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
 
     return result;
@@ -794,10 +822,10 @@ export const updateAdminOrderStatus = async (id: string, status: string) => {
       body: JSON.stringify({ status }),
     });
 
-    const result = await response.json();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result.message);
+      throw new Error(result?.message ?? "Request failed");
     }
   } catch (error) {
     console.error("Failed to update order status:", error);

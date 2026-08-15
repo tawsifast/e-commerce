@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Star, Truck, ShieldCheck } from "lucide-react";
-import { getProductById, getProductReviews } from "@/lib/server-api";
+import { getProductById, getProductReviews, getWishlist } from "@/lib/server-api";
 import { getSessionUser } from "@/lib/auth";
 import { formatDate, formatPrice, isNewProduct } from "@/lib/format";
 import { Gallery } from "@/components/products/Gallery";
 import { ProductActions } from "@/components/products/ProductActions";
 import { ReviewForm } from "@/components/products/ReviewForm";
 import { Button } from "@/components/ui/button";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -33,10 +35,12 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
 
   let product: Awaited<ReturnType<typeof getProductById>> | null = null;
   let reviews: Awaited<ReturnType<typeof getProductReviews>> = [];
+  let wishlist: Awaited<ReturnType<typeof getWishlist>> = [];
   try {
-    [product, reviews] = await Promise.all([
+    [product, reviews, wishlist] = await Promise.all([
       getProductById(id),
       getProductReviews(id),
+      user ? getWishlist().catch(() => []) : Promise.resolve([]),
     ]);
   } catch {
     product = null;
@@ -59,6 +63,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const hasDiscount = product.discountPrice != null && product.discountPrice < product.price;
   const finalPrice = hasDiscount && product.discountPrice != null ? product.discountPrice : product.price;
   const seller = typeof product.seller === "object" ? product.seller : null;
+  const isInWishlist = wishlist.some((item) => item._id === product._id);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -111,7 +116,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           )}
 
           <div className="mt-8">
-            <ProductActions product={product} user={user} />
+            <ProductActions product={product} user={user} isInWishlist={isInWishlist} />
           </div>
 
           {seller && (
