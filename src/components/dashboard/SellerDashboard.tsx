@@ -62,6 +62,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { CATEGORY_GROUP } from "@/lib/categories";
 import {
   Select,
   SelectContent,
@@ -85,7 +86,14 @@ const RANGES = [
   { value: "90d", label: "90 days" },
 ];
 
-const CHART_COLORS = ["hsl(var(--primary))", "#7c9885", "#c98d5e", "#8b7fb5", "#5b8db8"];
+const COLORS = ["#16a34a", "#2563eb", "#f59e0b", "#dc2626", "#7c3aed", "#0891b2", "#6b7280"];
+
+function groupTopCategories(data: { name: string; value: number }[], topN = 6) {
+  const sorted = [...data].sort((a, b) => b.value - a.value);
+  const top = sorted.slice(0, topN);
+  const restSum = sorted.slice(topN).reduce((s, c) => s + c.value, 0);
+  return restSum > 0 ? [...top, { name: "Others", value: restSum }] : top;
+}
 
 const TABS = [
   { id: "overview", label: "Overview", icon: BarChart3 },
@@ -196,8 +204,10 @@ function OverviewTab({
       icon: ShoppingBag,
     },
     { label: "Products listed", value: String(overview?.productsCount ?? 0), icon: Package },
-    { label: "Avg rating", value: `${overview?.avgRating ?? 0} / 5`, icon: Star },
+    { label: "Avg rating", value: `${overview?.avgRating ? Number(overview.avgRating).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : "0"} / 5`, icon: Star },
   ];
+
+  const pieData = groupTopCategories(analytics?.categoryBreakdown ?? []);
 
   return (
     <div className="space-y-6">
@@ -255,18 +265,18 @@ function OverviewTab({
         <div className="mt-4 h-72">
           {analytics?.salesSeries?.length ? (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={analytics.salesSeries} margin={{ left: 0, right: 8, top: 4 }}>
+              <AreaChart data={analytics.salesSeries} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.6)" vertical={false} />
                 <XAxis dataKey="date" tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={{ stroke: "hsl(var(--border))" }} />
-                <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={56} />
-                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 13 }} />
-                <Area type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#revenueFill)" />
+                <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={80} />
+                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 13, boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }} />
+                <Area type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={3} fill="url(#revenueFill)" activeDot={{ r: 6, fill: "hsl(var(--primary))", stroke: "hsl(var(--background))", strokeWidth: 2 }} />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
@@ -283,10 +293,10 @@ function OverviewTab({
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={analytics.topProducts} margin={{ left: 0, right: 8, top: 4 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border) / 0.6)" vertical={false} />
-                  <XAxis dataKey="title" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={{ stroke: "hsl(var(--border))" }} interval={0} angle={-18} height={50} textAnchor="end" />
+                  <XAxis dataKey="title" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={{ stroke: "hsl(var(--border))" }} interval={0} angle={-18} height={70} textAnchor="end" tickFormatter={(name: string) => (name.length > 12 ? `${name.slice(0, 12)}…` : name)} />
                   <YAxis tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} tickLine={false} axisLine={false} width={40} />
                   <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 13 }} />
-                  <Bar dataKey="sold" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="sold" fill="#16a34a" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -297,16 +307,16 @@ function OverviewTab({
 
         <div className="rounded-xl border border-border bg-card p-5">
           <h3 className="text-sm font-medium text-muted-foreground">Sales by category</h3>
-          <div className="relative mx-auto mt-4 aspect-square w-full max-w-72">
-            {analytics?.categoryBreakdown?.length ? (
+          <div className="relative mx-auto mt-4 aspect-square w-full max-w-80">
+            {pieData.length ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
-                  <Pie data={analytics.categoryBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius="55%" outerRadius="80%" paddingAngle={3} strokeWidth={0}>
-                    {analytics.categoryBreakdown.map((_, i) => (
-                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={70} outerRadius={110} paddingAngle={2} strokeWidth={2} stroke="hsl(var(--background))">
+                    {pieData.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 13 }} />
+                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 12, fontSize: 13, boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
@@ -314,9 +324,9 @@ function OverviewTab({
             )}
           </div>
           <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
-            {(analytics?.categoryBreakdown ?? []).map((c, i) => (
+            {pieData.map((c, i) => (
               <span key={c.name} className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                <span className="h-2.5 w-2.5 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
                 {c.name} — {formatPrice(c.value)}
               </span>
             ))}
@@ -731,7 +741,16 @@ function ProductDialog({
           </div>
           <div>
             <Label htmlFor="p-cat">Category</Label>
-            <Input id="p-cat" value={form.category} onChange={set("category")} placeholder="e.g. Fashion" className="mt-1.5" />
+            <Select value={form.category} onValueChange={(v) => v && setForm({ ...form, category: v })}>
+              <SelectTrigger id="p-cat" className="mt-1.5">
+                <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {Object.keys(CATEGORY_GROUP).sort().map((cat) => (
+                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label htmlFor="p-img">Image URLs (comma separated)</Label>
