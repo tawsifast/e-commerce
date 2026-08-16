@@ -18,6 +18,7 @@ import {
   RefreshCw,
   Trash2,
   ShoppingBag,
+  Loader2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { API_BASE_URL, cancelOrder, getApiErrorMessage, getMyOrders, getWishlist, removeFromWishlist } from "@/lib/api";
@@ -123,6 +124,12 @@ function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
     return () => { cancelled = true; };
   }, [page, initialPage]);
 
+  const goToPage = (p: number) => {
+    if (p === page) return;
+    setLoading(true);
+    setPage(p);
+  };
+
   const cancel = async (orderId: string) => {
     setCancellingId(orderId);
     try {
@@ -174,7 +181,15 @@ function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
   return (
     <div className="space-y-4">
       {error && orders && <p className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-center text-xs text-destructive">Couldn&apos;t refresh — showing previous results.</p>}
-      {items.map((order, idx) => {
+      {/* Pagination loading overlay */}
+      <div className="relative">
+        {loading && items.length > 0 && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/70 backdrop-blur-[2px]">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
+        <div className={`space-y-4 ${loading && items.length > 0 ? "pointer-events-none" : ""}`}>
+          {items.map((order, idx) => {
         const meta = ORDER_STATUS_META[order.orderStatus as keyof typeof ORDER_STATUS_META] ?? ORDER_STATUS_META.pending;
         const StatusIcon = meta.icon;
         return (
@@ -240,17 +255,19 @@ function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
             </footer>
           </motion.article>
         );
-      })}
+          })}
+        </div>
+      </div>
 
       {pages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-2">
-          <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+          <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => goToPage(page - 1)}>
             Previous
           </Button>
           <span className="text-sm text-muted-foreground">
             Page {page} of {pages}
           </span>
-          <Button size="sm" variant="outline" disabled={page >= pages} onClick={() => setPage((p) => p + 1)}>
+          <Button size="sm" variant="outline" disabled={page >= pages} onClick={() => goToPage(page + 1)}>
             Next
           </Button>
         </div>
@@ -264,6 +281,7 @@ function OrdersTab({ initialPage }: { initialPage: OrdersPage | null }) {
 function WishlistTab({ initialItems }: { initialItems: Product[] }) {
   const { addItem } = useCart();
   const [items, setItems] = useState<Product[]>(initialItems);
+  const [loading, setLoading] = useState(initialItems.length === 0);
   const [error, setError] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
 
@@ -273,9 +291,15 @@ function WishlistTab({ initialItems }: { initialItems: Product[] }) {
       .then((data) => {
         if (cancelled) return;
         setItems(data);
+        setLoading(false);
         setError(false);
       })
-      .catch(() => { if (!cancelled) setError(true); });
+      .catch(() => {
+        if (!cancelled) {
+          setLoading(false);
+          setError(true);
+        }
+      });
     return () => { cancelled = true; };
   }, []);
 
@@ -299,6 +323,23 @@ function WishlistTab({ initialItems }: { initialItems: Product[] }) {
         title="Couldn't load your wishlist"
         body={`Make sure your API is running at ${API_BASE_URL}.`}
       />
+    );
+  }
+
+  if (loading && items.length === 0) {
+    return (
+      <div className="grid gap-4 sm:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex gap-4 rounded-xl border border-border bg-card p-4">
+            <div className="h-24 w-24 shrink-0 animate-pulse rounded-lg bg-muted" />
+            <div className="flex flex-1 flex-col gap-2 py-1">
+              <div className="h-3 w-3/4 animate-pulse rounded bg-muted" />
+              <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
+              <div className="mt-auto h-8 w-24 animate-pulse rounded-lg bg-muted" />
+            </div>
+          </div>
+        ))}
+      </div>
     );
   }
 

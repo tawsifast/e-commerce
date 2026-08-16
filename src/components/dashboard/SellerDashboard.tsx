@@ -172,6 +172,7 @@ function OverviewTab({
   const [overview, setOverview] = useState<SellerOverview | null>(initialOverview);
   const [analytics, setAnalytics] = useState<SellerAnalytics | null>(initialAnalytics);
   const [overviewError, setOverviewError] = useState(false);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(initialAnalytics === null);
 
   useEffect(() => {
     let cancelled = false;
@@ -185,8 +186,18 @@ function OverviewTab({
     if (range === "30d" && initialAnalytics) return;
     let cancelled = false;
     getSellerAnalytics(range as "7d" | "30d" | "90d")
-      .then((data) => { if (!cancelled) setAnalytics(data as SellerAnalytics); })
-      .catch(() => { if (!cancelled) setAnalytics(null); });
+      .then((data) => {
+        if (!cancelled) {
+          setAnalytics(data as SellerAnalytics);
+          setLoadingAnalytics(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAnalytics(null);
+          setLoadingAnalytics(false);
+        }
+      });
     return () => { cancelled = true; };
   }, [range, initialAnalytics]);
 
@@ -243,8 +254,15 @@ function OverviewTab({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-serif text-2xl">Shop analytics</h2>
-        <Select value={range} onValueChange={(v) => v && setRange(v)}>
-          <SelectTrigger className="w-40">
+        <Select
+          value={range}
+          onValueChange={(v) => {
+            if (!v) return;
+            if (!(v === "30d" && initialAnalytics)) setLoadingAnalytics(true);
+            setRange(v);
+          }}
+        >
+          <SelectTrigger className="w-40" disabled={loadingAnalytics}>
             <SelectValue placeholder="Range" />
           </SelectTrigger>
           <SelectContent>
@@ -254,6 +272,17 @@ function OverviewTab({
           </SelectContent>
         </Select>
       </div>
+
+      {/* Charts area with loading overlay */}
+      <div className="relative space-y-6">
+        {loadingAnalytics && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/70 backdrop-blur-[2px]">
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card px-8 py-5 shadow-lg">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Loading analytics…</p>
+            </div>
+          </div>
+        )}
 
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -333,6 +362,7 @@ function OverviewTab({
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
@@ -798,6 +828,12 @@ function OrdersTab({ initialPage }: { initialPage: SellerOrdersPage | null }) {
     return () => { cancelled = true; };
   }, [page, initialPage]);
 
+  const goToPage = (p: number) => {
+    if (p === page) return;
+    if (!(p === 1 && initialPage)) setLoading(true);
+    setPage(p);
+  };
+
   const setStatus = async (id: string, status: string) => {
     setUpdatingId(id);
     try {
@@ -853,7 +889,14 @@ function OrdersTab({ initialPage }: { initialPage: SellerOrdersPage | null }) {
       )}
       <h2 className="font-serif text-2xl">Orders</h2>
 
-      <div className="hidden md:block">
+      {/* Pagination loading overlay */}
+      <div className="relative">
+        {loading && items.length > 0 && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/70 backdrop-blur-[2px]">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
+        <div className={loading && items.length > 0 ? "pointer-events-none" : ""}>
       <Table>
         <TableHeader>
           <TableRow>
@@ -924,14 +967,15 @@ function OrdersTab({ initialPage }: { initialPage: SellerOrdersPage | null }) {
           </div>
         ))}
       </div>
+      </div>
 
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
-          <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+          <Button size="sm" variant="outline" disabled={page <= 1} onClick={() => goToPage(page - 1)}>
             Previous
           </Button>
           <span className="text-sm text-muted-foreground">Page {page} of {totalPages}</span>
-          <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+          <Button size="sm" variant="outline" disabled={page >= totalPages} onClick={() => goToPage(page + 1)}>
             Next
           </Button>
         </div>

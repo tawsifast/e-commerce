@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, ShoppingBag, User as UserIcon, X, LogOut, LayoutDashboard, Search, Info, Mail } from "lucide-react";
+import { Menu, ShoppingBag, User as UserIcon, X, LogOut, LayoutDashboard, Search, Info, Mail, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { useCart } from "@/lib/cart-context";
 import { authClient } from "@/lib/auth-client";
@@ -24,6 +24,7 @@ export function Navbar({ user }: { user: User | null }) {
   const { count, openDrawer } = useCart();
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const pathname = usePathname();
   const { data: session } = authClient.useSession();
 
@@ -38,8 +39,13 @@ export function Navbar({ user }: { user: User | null }) {
     : user;
 
   const logout = async () => {
-    await authClient.signOut();
-    router.refresh();
+    setLoggingOut(true);
+    try {
+      await authClient.signOut();
+      router.refresh();
+    } finally {
+      setLoggingOut(false);
+    }
   };
 
   return (
@@ -98,8 +104,8 @@ export function Navbar({ user }: { user: User | null }) {
                 )}
                 <span className="hidden max-w-[8ch] truncate md:inline-block">{navUser.name.split(" ")[0]}</span>
               </Link>
-              <Button variant="ghost" size="icon" onClick={logout} aria-label="Log out" className="hidden md:inline-flex">
-                <LogOut className="h-4 w-4" />
+              <Button variant="ghost" size="icon" onClick={logout} disabled={loggingOut} aria-label="Log out" className="hidden md:inline-flex">
+                {loggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
               </Button>
             </div>
           ) : (
@@ -147,9 +153,10 @@ export function Navbar({ user }: { user: User | null }) {
                   <Button
                     variant="ghost"
                     onClick={() => { logout(); setMobileOpen(false); }}
+                    disabled={loggingOut}
                     className="h-auto w-full justify-start gap-3 rounded-md px-3 py-2.5 text-left text-destructive! hover:bg-accent!"
                   >
-                    <LogOut className="h-4 w-4" /> Log out
+                    {loggingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />} Log out
                   </Button>
                 </>
               ) : (

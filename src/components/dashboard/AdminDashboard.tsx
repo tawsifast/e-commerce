@@ -20,6 +20,7 @@ import {
   DollarSign,
   Eye,
   EyeOff,
+  Loader2,
   Package,
   ShieldCheck,
   ShoppingBag,
@@ -243,6 +244,12 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
     return () => { cancelled = true; };
   }, [page, initialPage]);
 
+  const goToPage = (p: number) => {
+    if (p === page) return;
+    if (!(p === 1 && initialPage)) setLoading(true);
+    setPage(p);
+  };
+
   const reload = async () => {
     const d = await getAdminUsers({ page, limit: 15 });
     setData(d as AdminUsersPage);
@@ -311,7 +318,14 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
       )}
       <h2 className="font-serif text-2xl">Users</h2>
 
-      <div className="hidden md:block">
+      {/* Pagination loading overlay */}
+      <div className="relative">
+        {loading && items.length > 0 && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/70 backdrop-blur-[2px]">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
+        <div className={loading && items.length > 0 ? "pointer-events-none" : ""}>
       <Table>
         <TableHeader>
           <TableRow>
@@ -451,8 +465,9 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
           </div>
         ))}
       </div>
+      </div>
 
-      {totalPages > 1 && <Pager page={page} setPage={setPage} totalPages={totalPages} />}
+      {totalPages > 1 && <Pager page={page} setPage={goToPage} totalPages={totalPages} />}
     </div>
   );
 }
@@ -483,6 +498,12 @@ function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null })
       });
     return () => { cancelled = true; };
   }, [page, initialPage]);
+
+  const goToPage = (p: number) => {
+    if (p === page) return;
+    if (!(p === 1 && initialPage)) setLoading(true);
+    setPage(p);
+  };
 
   const reload = async () => {
     const d = await getAdminProducts({ page, limit: 15 });
@@ -539,7 +560,14 @@ function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null })
       )}
       <h2 className="font-serif text-2xl">Products</h2>
 
-      <div className="hidden md:block">
+      {/* Pagination loading overlay */}
+      <div className="relative">
+        {loading && items.length > 0 && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/70 backdrop-blur-[2px]">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
+        <div className={loading && items.length > 0 ? "pointer-events-none" : ""}>
       <Table>
         <TableHeader>
           <TableRow>
@@ -645,8 +673,9 @@ function ProductsTab({ initialPage }: { initialPage: AdminProductsPage | null })
           </div>
         ))}
       </div>
+      </div>
 
-      {totalPages > 1 && <Pager page={page} setPage={setPage} totalPages={totalPages} />}
+      {totalPages > 1 && <Pager page={page} setPage={goToPage} totalPages={totalPages} />}
     </div>
   );
 }
@@ -677,6 +706,12 @@ function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
     return () => { cancelled = true; };
   }, [page, initialPage]);
 
+  const goToPage = (p: number) => {
+    if (p === page) return;
+    if (!(p === 1 && initialPage)) setLoading(true);
+    setPage(p);
+  };
+
   if (error && !data) {
     return <ApiError />;
   }
@@ -702,7 +737,14 @@ function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
         </div>
       )}
 
-      <div className="hidden md:block">
+      {/* Pagination loading overlay */}
+      <div className="relative">
+        {loading && items.length > 0 && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/70 backdrop-blur-[2px]">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        )}
+        <div className={loading && items.length > 0 ? "pointer-events-none" : ""}>
       <Table>
         <TableHeader>
           <TableRow>
@@ -756,8 +798,9 @@ function OrdersTab({ initialPage }: { initialPage: AdminOrdersPage | null }) {
           );
         })}
       </div>
+      </div>
 
-      {totalPages > 1 && <Pager page={page} setPage={setPage} totalPages={totalPages} />}
+      {totalPages > 1 && <Pager page={page} setPage={goToPage} totalPages={totalPages} />}
     </div>
   );
 }
