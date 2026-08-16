@@ -3,6 +3,8 @@
  * Automatically shown by the framework while the server component re-renders
  * (e.g. on every filter / sort / search change).
  */
+import { ProductGridSkeleton, ResultsLoadingBar } from "@/components/products/ProductGridSkeleton";
+
 export default function ProductsLoading() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
@@ -51,18 +53,10 @@ export default function ProductsLoading() {
           </aside>
 
           {/* Product grid skeleton — 12 shimmer cards */}
-          <div className="grid grid-cols-2 gap-5 md:grid-cols-3">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <div key={i} className="overflow-hidden rounded-2xl border border-border bg-card">
-                <div className="aspect-square animate-pulse bg-muted" />
-                <div className="space-y-2 p-4">
-                  <div className="h-3 w-3/4 animate-pulse rounded bg-muted" />
-                  <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
-                  <div className="h-5 w-1/3 animate-pulse rounded bg-muted" />
-                </div>
-              </div>
-            ))}
+          <div className="mb-5">
+            <ResultsLoadingBar />
           </div>
+          <ProductGridSkeleton />
         </div>
       </div>
     </div>

@@ -7,6 +7,7 @@ import type { CategoryGroup } from "@/lib/categories";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ProductGridSkeleton, ResultsLoadingBar } from "@/components/products/ProductGridSkeleton";
 
 export interface SearchParams {
   search?: string;
@@ -194,19 +195,18 @@ export function ProductsToolbar({
           </div>
         </aside>
 
-        {/* Grid — with loading overlay while server re-renders */}
-        <div className="relative min-h-[300px]">
+        {/* Results — skeleton grid + branded bar while server re-renders */}
+        <div className="relative min-h-[300px]" aria-busy={isPending}>
           {isPending && (
-            <div className="absolute inset-0 z-10 flex items-start justify-center rounded-xl bg-background/70 pt-24 backdrop-blur-[2px]">
-              <div className="flex flex-col items-center gap-3 rounded-2xl border border-border bg-card px-8 py-5 shadow-lg">
-                <Loader2 className="h-7 w-7 animate-spin text-primary" />
-                <p className="text-sm font-medium text-muted-foreground">Updating results…</p>
-              </div>
+            <div className="mb-5">
+              <ResultsLoadingBar />
             </div>
           )}
-          <div className={isPending ? "pointer-events-none select-none opacity-50 transition-opacity" : "transition-opacity"}>
-            {children}
-          </div>
+          {isPending ? (
+            <ProductGridSkeleton />
+          ) : (
+            <div className="transition-opacity">{children}</div>
+          )}
         </div>
       </div>
     </>
