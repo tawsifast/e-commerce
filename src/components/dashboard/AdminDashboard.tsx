@@ -325,7 +325,7 @@ function UsersTab({ initialPage }: { initialPage: AdminUsersPage | null }) {
             <Loader2 className="h-6 w-6 animate-spin text-primary" />
           </div>
         )}
-        <div className={loading && items.length > 0 ? "pointer-events-none" : ""}>
+        <div className={`hidden md:block ${loading && items.length > 0 ? "pointer-events-none" : ""}`}>
       <Table>
         <TableHeader>
           <TableRow>
